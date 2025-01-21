@@ -3,11 +3,10 @@ name: Format Code
 on:
   push:
     branches:
-      - main
+      - "**"
   pull_request:
-    types:
-      - opened
-      - synchronize
+    branches:
+      - "**"
 
 jobs:
   format:
@@ -23,3 +22,10 @@ jobs:
           username: "J-falkenstein"
           message: "Auto-format code using Black with monai formatter"
           token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit formatted code
+        run: |
+          git add .
+          git commit -m "Auto-format code using Black with monai formatter"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
