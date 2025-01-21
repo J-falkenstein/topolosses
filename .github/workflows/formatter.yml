@@ -21,5 +21,5 @@ jobs:
           format_args: "--line-length 88"
           email: "j.falkenstein@tum.de"
           username: "J-falkenstein"
-          message: "Auto-format code using Black"
+          message: "Auto-format code using Black with monai formatter"
           token: ${{ secrets.GITHUB_TOKEN }}
