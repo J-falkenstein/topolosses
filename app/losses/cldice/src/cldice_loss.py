@@ -1,21 +1,18 @@
 from typing import List
-import typing
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-from losses.utils import convert_to_one_vs_rest, soft_skel
-
+from utils import convert_to_one_vs_rest, soft_skel
 from torch.nn.modules.loss import _Loss
-#if typing.TYPE_CHECKING:
+
+# if typing.TYPE_CHECKING:
 from jaxtyping import Float
 
 
-class Multiclass_CLDice(_Loss):
+class CLDice(_Loss):
     """
     Multiclass_CLDice is a loss function that combines the Dice loss and the CLDice loss for multiclass segmentation tasks.
 
     Args:
+        weights (List[Float]): weights for a weighted Dice loss. Default is None meaning unweighted.
         iter_ (int): Number of iterations for soft skeleton computation. Default is 3.
         alpha (float): Weighting factor for the CLDice loss. 0 makes loss equivalent to Dice loss. Default is 0.5.
         smooth (float): Smoothing factor to avoid division by zero. Default is 1e-5.
@@ -45,11 +42,35 @@ class Multiclass_CLDice(_Loss):
 
     """
 
-    def __init__(self, weights: List[Float]=[], iter_=3, alpha=0.5, smooth=1e-5,sigmoid=False,softmax=False   , include_background=False, convert_to_one_vs_rest=False, batch=False):
-        super(Multiclass_CLDice, self).__init__()
-        if int(sigmoid) + int(softmax) + int(convert_to_one_vs_rest) > 1:
-            raise ValueError("Incompatible values: more than 1 of [sigmoid=True, softmax=True, convert_to_one_vs_rest=True].")
-        
+    def __init__(
+        self,
+        weights: List[Float] = None,  # Or will the user pass an empty lsit when it does not want to use weights?
+        iter_=3,
+        alpha=0.5,
+        smooth=1e-5,
+        sigmoid=False,
+        softmax=False,
+        convert_to_one_vs_rest=False,
+        include_background=False,
+        batch=False,
+    ):
+
+        if sum([sigmoid, softmax, convert_to_one_vs_rest]) > 1:
+            raise ValueError(
+                "At most one of [sigmoid, softmax, convert_to_one_vs_rest] can be set to True. "
+                "You can only choose one of these options at a time or none if you already pass probabilites."
+            )
+
+        if self.weights is not None and (
+            (self.include_background and len(self.weights) != input.shape[1])
+            or (not self.include_background and len(self.weights) != input.shape[1] - 1)
+        ):
+            raise ValueError(
+                f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]})."
+            )
+
+        super(CLDice, self).__init__()
+
         self.include_background = include_background
         self.sigmoid = sigmoid
         self.softmax = softmax
@@ -78,73 +99,78 @@ class Multiclass_CLDice(_Loss):
             AssertionError: If the shape of the ground truth is different from the input shape.
 
         """
-        if (len(self.weights) > 0 and (
-            (self.include_background and len(self.weights) != input.shape[1]) or 
-            (not self.include_background and len(self.weights) != input.shape[1] - 1))
-        ):
-            raise ValueError(f"Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]}).")
-        elif len(self.weights) > 0:
-            # Move weight tensor to correct device and replicate across batch dimension
+
+        if target.shape != input.shape:
+            raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
+
+        if self.weights is not None:
             self.weights = self.weights.to(input.device)
             if self.batch:
                 weights = self.weights.unsqueeze(0)
                 weights = weights.expand(input.shape[0], -1)
-        
-        if self.sigmoid:
-            input = torch.sigmoid(input)
 
         n_pred_ch = input.shape[1]
-        if self.softmax:
-            if n_pred_ch == 1:
-                raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
-            else:
-                input = torch.softmax(input, 1)
-        
+
         if not self.include_background and n_pred_ch == 1:
             raise ValueError("single channel prediction, `include_background=False` is not a valid combination.")
-        
-        if self.convert_to_one_vs_rest:
-            input = convert_to_one_vs_rest(input)
+        if self.softmax and n_pred_ch == 1:
+            raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
 
-        if target.shape != input.shape:
-            raise AssertionError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
-        
-        # reducing only spatial dimensions (not batch nor channels)
-        reduce_axis: List[int] = torch.arange(2, len(input.shape)).tolist()
-        if self.batch:
-            # reducing spatial dimensions and batch
-            reduce_axis = [0] + reduce_axis
-        
-        dic = {}
-        
+        if self.sigmoid:
+            input = torch.sigmoid(input)
+        elif self.softmax:
+            input = torch.softmax(input, 1)
+        elif self.convert_to_one_vs_rest:
+            input = convert_to_one_vs_rest(input)
+        # if they are all false, the input must already be probabilities and not logits
+
+        # Determine axes to reduce: spatial dimensions, and optionally batch
+        reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
+        starting_class = 1 if self.include_background else 0
+
         if self.alpha > 0:
-            starting_class = 1 if self.include_background else 0
 
             # Create soft skeletons
             pred_skeletons = soft_skel(input[:, starting_class:].float(), self.iter)
             target_skeletons = soft_skel(target[:, starting_class:].float(), self.iter)
 
             # Compute CLDice
-            tprec = (torch.sum(torch.multiply(pred_skeletons, target[:, starting_class:]), dim=reduce_axis)+self.smooth)/(torch.sum(pred_skeletons, dim=reduce_axis)+self.smooth)    
-            tsens = (torch.sum(torch.multiply(target_skeletons, input[:, starting_class:]), dim=reduce_axis)+self.smooth)/(torch.sum(target_skeletons, dim=reduce_axis)+self.smooth)    
-            cl_dice = torch.mean(1.- 2.0*(tprec*tsens)/(tprec+tsens))
-            
+            tprec = (
+                torch.sum(
+                    torch.multiply(pred_skeletons, target[:, starting_class:]),
+                    dim=reduce_axis,
+                )
+                + self.smooth
+            ) / (torch.sum(pred_skeletons, dim=reduce_axis) + self.smooth)
+
+            tsens = (
+                torch.sum(
+                    torch.multiply(target_skeletons, input[:, starting_class:]),
+                    dim=reduce_axis,
+                )
+                + self.smooth
+            ) / (torch.sum(target_skeletons, dim=reduce_axis) + self.smooth)
+
+            cl_dice = torch.mean(1.0 - 2.0 * (tprec * tsens) / (tprec + tsens))
+
             # Weighted CLDice
-            if len(self.weights) > 0:
+            if self.weights is not None:
                 cl_dice = torch.multiply(cl_dice, weights[starting_class:])
         else:
-            cl_dice = torch.zeros(size=[1], device=input.device) # TODO: dim should match of actual cl dice calculation
+            cl_dice = torch.zeros_like(input[:, starting_class:])
 
-        # Compute Dice
+        # Compute Dice # TODO should i use monai implementation? For pip packages it is better to not use dependencies
         intersection = torch.sum(target * input, dim=reduce_axis)
         ground_o = torch.sum(target, dim=reduce_axis)
         pred_o = torch.sum(input, dim=reduce_axis)
         denominator = ground_o + pred_o
 
-        dice = 1.0 - (2.0 * intersection + self.smooth) / (denominator + self.smooth) # TODO: check if smooth should be removed in nominator
+        dice = 1.0 - (2.0 * intersection + self.smooth) / (
+            denominator + self.smooth
+        )  # TODO: check if smooth should be removed in nominator
 
         # Weighted Dice
-        if len(self.weights) > 0:
+        if self.weights is not None:
             dice = torch.multiply(dice, weights)
 
         # build the mean (across the batch and channel dimensions) of the loss
@@ -155,20 +181,6 @@ class Multiclass_CLDice(_Loss):
         loss = (1 - self.alpha) * dice + self.alpha * cl_dice
 
         dic = {}
-        dic['dice'] = (1 - self.alpha) * dice
-        dic['cldice'] = self.alpha*cl_dice
-        return loss, dic 
-
-        if self.reduction == LossReduction.MEAN.value:
-            f = torch.mean(f)  # the batch and channel average
-        elif self.reduction == LossReduction.SUM.value:
-            f = torch.sum(f)  # sum over the batch and channel dims
-        elif self.reduction == LossReduction.NONE.value:
-            # If we are not computing voxelwise loss components at least
-            # make sure a none reduction maintains a broadcastable shape
-            broadcast_shape = list(f.shape[0:2]) + [1] * (len(input.shape) - 2)
-            f = f.view(broadcast_shape)
-        else:
-            raise ValueError(f'Unsupported reduction: {self.reduction}, available options are ["mean", "sum", "none"].')
-
-        return f
+        dic["dice"] = (1 - self.alpha) * dice
+        dic["cldice"] = self.alpha * cl_dice
+        return loss, dic
