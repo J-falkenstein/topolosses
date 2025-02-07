@@ -21,14 +21,14 @@ class DiceCLDiceLoss(_Loss):
 
     def __init__(
         self,
-        iter_=3,
-        alpha=0.5,
-        smooth=1e-5,
-        sigmoid=False,
-        softmax=False,
-        convert_to_one_vs_rest=False,
-        batch=False,
-        include_background=False,
+        iter_: int = 3,
+        alpha: float = 0.5,
+        smooth: float = 1e-5,
+        sigmoid: bool = False,
+        softmax: bool = False,
+        convert_to_one_vs_rest: bool = False,
+        batch: bool = False,
+        include_background: bool = False,
         weights: List[Float] = None,
     ):
         """
@@ -140,7 +140,7 @@ class DiceCLDiceLoss(_Loss):
 
         return dice_cl_dice_loss, {"dice": (1 - self.alpha) * dice, "cldice": self.alpha * cl_dice}
 
-    # TODO could possibly be reused for other topo losses that are by defaul combined wiht dice loss
+    # Could possibly be reused for other topo losses that are by defaul combined wiht dice loss
     def _compute_dice_loss(self, input: torch.Tensor, target: torch.Tensor, reduce_axis: List[int]) -> torch.Tensor:
         """Simplified function to compute the (weighted) Dice loss as part of the DiceCLDice loss.
 
@@ -168,7 +168,6 @@ class DiceCLDiceLoss(_Loss):
 
 
 class BaseCLDiceLoss(_Loss):
-    # TODO rewrite all these comments and can i directly linke to other classes in the docstring?
     """A loss function for segmentation that combines a base loss and a CLDice component.
 
     The loss has been defined in:
