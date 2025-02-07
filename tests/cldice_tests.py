@@ -5,7 +5,7 @@ import itertools
 import sys
 import torch
 from matplotlib.colors import ListedColormap
-from monai.losses import SoftDiceclDiceLoss, SoftclDiceLoss
+from monai.losses import SoftDiceclDiceLoss, SoftclDiceLoss, DiceLoss
 
 # Add the parent directory to the system path
 sys.path.append("..")
@@ -75,7 +75,9 @@ def compare_loss_implementation(pred, gt, expected_result, ignore_background=Tru
     pred_onehot = torch.nn.functional.one_hot(pred.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
     gt_onehot = torch.nn.functional.one_hot(gt.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
 
-    cldice_new = cldice_loss.DiceCLDiceLoss(weights=[0.0, 1.0])
+    cldice_new_ignoreBackgroundDice = cldice_loss.DiceCLDiceLoss(weights=[0.0, 1.0])
+    cldice_new = cldice_loss.DiceCLDiceLoss()
+    cldice_new_base = cldice_loss.BaseCLDiceLoss(base_loss=DiceLoss(include_background=False))
     cldice_orignal = cldice_loss_orignal.Multiclass_CLDice()
     dicecldice_monai = SoftDiceclDiceLoss(smooth=1e-5)
     cldice_monai = SoftclDiceLoss(smooth=1e-5)
@@ -84,11 +86,13 @@ def compare_loss_implementation(pred, gt, expected_result, ignore_background=Tru
     loss_original = cldice_orignal(pred_onehot, gt_onehot)
     loss_monai_dicecldice = dicecldice_monai(pred_onehot, gt_onehot)
     loss_monai_cldice = cldice_monai(pred_onehot, gt_onehot)
+    loss_new_base = cldice_new_base(pred_onehot, gt_onehot)
 
     print("Refactored implementation: ", loss)
     print("Original implementation: ", loss_original)
     print("Monai dice cl dice: ", loss_monai_dicecldice)
     print("Monai cl dice: ", loss_monai_cldice)
+    print("Base cl dice: ", loss_new_base)
 
 
 pred = torch.tensor(
