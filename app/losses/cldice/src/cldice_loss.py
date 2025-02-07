@@ -9,34 +9,14 @@ from jaxtyping import Float
 
 
 class DiceCLDiceLoss(_Loss):
-    """
-    DiceCLDice is a loss function for segmentation tasks that combines a Dice component and a CLDice componenent defined in:
+    """A loss function for segmentation tasks that combines a Dice and CLDice componenent.
 
+    The loss has been defined in:
         Shit et al. (2021) clDice -- A Novel Topology-Preserving Loss Function
         for Tubular Structure Segmentation. (https://arxiv.org/abs/2003.07311)
 
-
     This class is for a straightforward use with a (weighted) Dice loss as the base loss.
-    For different or more advanced settings of the base loss use BaseCLDice class where you can hand over a initialized Base loss (e.g. cross entropy).
-
-    Attributes:
-        iter_ (int): Number of iterations for soft skeleton computation. Higher values refine the skeleton but increase computation time. Default is 3.
-        smooth (float): Smoothing factor to avoid division by zero in Dice and CLDice calculations. Default is 1e-5.
-        alpha (float): Weighting factor for the CLDice loss. Setting `alpha=0` makes the loss equivalent to the standard Dice loss. Default is 0.5.
-        sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the Dice and CLDice. Default is `False`.
-        softmax (bool): If `True`, applies a softmax activation to the input before computing the Dice and CLDice. Default is `False`.
-        convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for multi-class segmentation before computing the Dice and CLDice. Default is `False`.
-        batch (bool): Whether to sum the intersection and union areas over the batch dimension before the dividing. Applies to both components Dice and CLDice. If `True`, the loss is reduced across the batch dimension.
-                    Defaults to False, a loss value is computed independently from each item in the batch before any `reduction`.
-        include_background (bool): If `True`, includes the background class in CLDice computation. Default is `False`.
-                                   Note: Background inclusion in the Dice component should be controlled using `weights` instead.
-        weights (List[float] or None): Class-wise weights for the Dice component, allowing emphasis on specific classes.
-                                       Default is `None` (unweighted). Weights are **only applied to the Dice component**,
-                                       not the CLDice component. This can be used to ignore the background in the Dice loss.
-
-    Methods:
-        forward(input, target): Computes the CLDice loss and Dice loss for the given input and target.
-
+    For more advanced configurations of the base loss, use the `BaseCLDice` class, where you can provide an initialized base loss (e.g., cross-entropy).
     """
 
     def __init__(
@@ -52,22 +32,32 @@ class DiceCLDiceLoss(_Loss):
         weights: List[Float] = None,
     ):
         """
+        Initializes the DiceCLDiceLoss object.
+
         Args:
-            iter_ (int): Number of iterations for soft skeleton computation. Higher values refine the skeleton but increase computation time. Default is 3.
-            smooth (float): Smoothing factor to avoid division by zero in Dice and CLDice calculations. Default is 1e-5.
-            alpha (float): Weighting factor for the CLDice and the Dice components. Default is 0.5.
-            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the loss. Default is `False`.
-            softmax (bool): If `True`, applies a softmax activation to the input before computing the loss. Default is `False`.
-            convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for multi-class segmentation. Default is `False`.
-            batch (bool): If `True`, the loss is reduced across the batch dimension. Default is `False`.
-            include_background (bool): If `True`, includes the background class in CLDice computation. Default is `False`.
-                                    Note: Background inclusion in the Dice component should be controlled using `weights` instead.
-            weights (List[float] or None): Class-wise weights for the Dice component, allowing emphasis on specific classes or ignoring classes.
-                                       Default is `None` (unweighted). Weights are **only applied to the Dice component**,
-                                       not the CLDice component. This can be used to ignore the background in the Dice loss.
+            iter_ (int): Number of iterations for soft skeleton computation. Higher values refine
+                the skeleton but increase computation time. Defaults to 3.
+            alpha (float): Weighting factor for the CLDice and Dice components. Defaults to 0.5.
+            smooth (float): Smoothing factor to avoid division by zero in Dice and CLDice calculations.
+                Defaults to 1e-5.
+            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the loss.
+                Defaults to `False`.
+            softmax (bool): If `True`, applies a softmax activation to the input before computing the loss.
+                Defaults to `False`.
+            convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for
+                multi-class segmentation. Defaults to `False`.
+            batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
+                Defaults to `False`, where the loss is computed independently for each item for the Dice and CLDice component calculation.
+            include_background (bool): If `True`, includes the background class in CLDice component.
+                Defaults to `False`. Background inclusion in the Dice component should be controlled using
+                `weights` instead.
+            weights (List[float], optional): Class-wise weights for the Dice component, allowing emphasis
+                on specific classes or ignoring classes. Defaults to `None` (unweighted). Weights are **only
+                applied to the Dice component**, not the CLDice component.
 
         Raises:
-            ValueError: If more than one of [sigmoid, softmax, convert_to_one_vs_rest] is set to True.
+            ValueError: If more than one of `sigmoid`, `softmax`, or `convert_to_one_vs_rest` is set to `True`.
+
         """
 
         if sum([sigmoid, softmax, convert_to_one_vs_rest]) > 1:
@@ -89,16 +79,15 @@ class DiceCLDiceLoss(_Loss):
         self.weights = None if weights == None else torch.tensor(weights)
 
     # do i need or can i do typing here TODO?
-    def forward(self, input, target):
-        """
-        Computes the CLDice loss and Dice loss for the given input and target.
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """Computes the CLDice loss and Dice loss for the given input and target.
 
         Args:
             input (torch.Tensor): The predicted segmentation map.
             target (torch.Tensor): The ground truth segmentation map.
 
         Returns:
-            tuple: A tuple containing the total loss and a dictionary of individual loss components.
+            tuple: A tuple containing the total DiceCLDice loss and a dictionary of individual loss components.
 
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
@@ -153,8 +142,7 @@ class DiceCLDiceLoss(_Loss):
 
     # TODO could possibly be reused for other topo losses that are by defaul combined wiht dice loss
     def _compute_dice_loss(self, input: torch.Tensor, target: torch.Tensor, reduce_axis: List[int]) -> torch.Tensor:
-        """
-        Simplified function to compute the Dice loss. If weights is not None, the loss is weighted.
+        """Simplified function to compute the (weighted) Dice loss as part of the DiceCLDice loss.
 
         Args:
             input (torch.Tensor): The predicted segmentation map with shape (N, C, ...),
@@ -162,7 +150,6 @@ class DiceCLDiceLoss(_Loss):
             target (torch.Tensor): The ground truth segmentation map with the same shape as `input`.
             reduce_axis (List[int]): The axes along which to reduce the loss computation.
                                 To decide whether to sum the intersection and union areas over the batch dimension before the dividing.
-
 
         Returns:
             torch.Tensor: The Dice loss as a scalar
@@ -182,14 +169,14 @@ class DiceCLDiceLoss(_Loss):
 
 class BaseCLDiceLoss(_Loss):
     # TODO rewrite all these comments and can i directly linke to other classes in the docstring?
-    """
-    This a loss function for segmentation tasks that combines a chosen base component and a CLDice componenent defined in:
-        Shit et al. (2021) clDice -- A Novel Topology-Preserving Loss Function for Tubular Structure Segmentation. (https://arxiv.org/abs/2003.07311)
+    """A loss function for segmentation that combines a base loss and a CLDice component.
 
+    The loss has been defined in:
+        Shit et al. (2021) clDice -- A Novel Topology-Preserving Loss Function
+        for Tubular Structure Segmentation. (https://arxiv.org/abs/2003.07311)
 
-    This class is allows for flebility of the base loss function as the user can define its own base loss function.
-    For a straightforward use of CLDice with a Dice base loss and without defining parameters like smooth, sigmoid, etc. twice use the class :class:`DiceCLDiceLoss`.
-
+    This class allows flexibility in choosing a custom base loss function.
+    For a simpler implementation with a Dice base loss, use the `DiceCLDiceLoss` class.
     """
 
     def __init__(
@@ -206,19 +193,22 @@ class BaseCLDiceLoss(_Loss):
     ):
         """
         Args:
-            iter_ (int): Number of iterations for soft skeleton computation. Higher values refine the skeleton but increase computation time. Default is 3.
-            smooth (float): Smoothing factor to avoid division by zero in CLDice calculations. Default is 1e-5.
-            alpha (float): Weighting factor for the CLDice and the Base components. Default is 0.5.
-            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the clDice loss. Default is `False`.
-            softmax (bool): If `True`, applies a softmax activation to the input before computing the clDice loss. Default is `False`.
-            convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for multi-class segmentation. Default is `False`.
-            batch (bool): Whether to sum the intersection and union areas over the batch dimension before the dividing in the CLDice compuations.
-                                    If `True`, the CLDice loss is reduced across the batch dimension. Default is `False`.
-            include_background (bool): If `True`, includes the background class in CLDice computation. Default is `False`.
-                                    Note: Background inclusion in the Dice component should be controlled using `weights` instead.
-            base_loss (_Loss): The base loss function that should be used for the non-topo component of the loss calculation. Make sure to set up with desired parematers.
-                            Defaults to `None`, meaning that only the CLDice component will be calculated.
-
+            iter_ (int): Number of iterations for soft skeleton computation. Higher values refine
+                the skeleton but increase computation time. Defaults to 3.
+            smooth (float): Smoothing factor to avoid division by zero in CLDice calculations. Defaults to 1e-5.
+            alpha (float): Weighting factor for combining the CLDice and base loss components. Defaults to 0.5.
+            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
+                Defaults to `False`.
+            softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
+                Defaults to `False`.
+            convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for multi-class
+                segmentation. Defaults to `False`.
+            batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
+                Defaults to `False`, where the loss is computed independently for each item for the CLDice component calculation.
+            include_background (bool): If `True`, includes the background class in CLDice computation. Defaults to `False`.
+                Background inclusion in the Dice component should be controlled using `weights` instead.
+            base_loss (_Loss, optional): The base loss function (e.g., cross-entropy) to be used alongside the CLDice loss.
+                Defaults to `None`, meaning only the CLDice loss will be used.
 
         Raises:
             ValueError: If more than one of [sigmoid, softmax, convert_to_one_vs_rest] is set to True.
@@ -242,16 +232,15 @@ class BaseCLDiceLoss(_Loss):
         self.include_background = include_background
         self.base_loss = base_loss
 
-    def forward(self, input, target):
-        """
-        Computes the CLDice loss and base loss for the given input and target.
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """Computes the CLDice loss and base loss for the given input and target.
 
         Args:
             input (torch.Tensor): The predicted segmentation map.
             target (torch.Tensor): The ground truth segmentation map.
 
         Returns:
-            tuple: A tuple containing the total loss and a dictionary of individual loss components.
+            tuple: A tuple containing the total BaseCLDice loss and a dictionary of individual loss components.
 
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
@@ -305,8 +294,7 @@ def compute_cldice_loss(
     iter_: int,
     reduce_axis: List[int],
 ) -> torch.Tensor:
-    """
-    Computes the CLDice loss.
+    """Computes the CLDice loss.
 
     Args:
         input (torch.Tensor): The predicted segmentation map with shape (N, C, ...),
@@ -344,6 +332,7 @@ def compute_cldice_loss(
 
 
 def soft_erode(img: torch.Tensor) -> torch.Tensor:
+    """Erode the input image by shrinking objects using max pooling"""
     if len(img.shape) == 4:
         p1 = -F.max_pool2d(-img, (3, 1), (1, 1), (1, 0))
         p2 = -F.max_pool2d(-img, (1, 3), (1, 1), (0, 1))
@@ -353,6 +342,7 @@ def soft_erode(img: torch.Tensor) -> torch.Tensor:
 
 
 def soft_dilate(img: torch.Tensor) -> torch.Tensor:
+    """Perform soft dilation on the input image using max pooling."""
     if len(img.shape) == 4:
         return F.max_pool2d(img, (3, 3), (1, 1), (1, 1))
     else:
@@ -360,10 +350,12 @@ def soft_dilate(img: torch.Tensor) -> torch.Tensor:
 
 
 def soft_open(img: torch.Tensor) -> torch.Tensor:
+    """Apply opening: erosion followed by dilation."""
     return soft_dilate(soft_erode(img))
 
 
 def soft_skel(img: torch.Tensor, iter_: int) -> torch.Tensor:
+    """Generate a soft skeleton by iteratively applying erosion and opening."""
     img1 = soft_open(img)
     skel = F.relu(img - img1)
     for _ in range(iter_):
