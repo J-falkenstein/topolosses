@@ -68,31 +68,38 @@ importlib.reload(cldice_loss_orignal)
 def compare_loss_implementation(pred, gt, expected_result, ignore_background=True, num_classes=2):
     # TODO expected result does not make sense anymore, but need
     # fig, ax = plt.subplots(1, 2, figsize=(20, 20))
-    # ax[0].imshow(pred[0], cmap=cmap)
-    # ax[1].imshow(gt[0], cmap=cmap)
+    # ax[0].imshow(pred[0, 0], cmap=cmap)
+    # ax[1].imshow(gt[0, 0], cmap=cmap)
     # plt.show()
 
-    pred_onehot = torch.nn.functional.one_hot(pred.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
-    gt_onehot = torch.nn.functional.one_hot(gt.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
+    if expected_result >= 0:
+        gt_onehot = torch.nn.functional.one_hot(gt.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
+        pred_onehot = torch.nn.functional.one_hot(pred.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
+    else:
+        gt_onehot = gt
+        pred_onehot = pred
 
-    cldice_new_ignoreBackgroundDice = cldice_loss.DiceCLDiceLoss(weights=[0.0, 1.0])
     cldice_new = cldice_loss.DiceCLDiceLoss()
-    cldice_new_base = cldice_loss.BaseCLDiceLoss(base_loss=DiceLoss(include_background=False))
     cldice_orignal = cldice_loss_orignal.Multiclass_CLDice()
     dicecldice_monai = SoftDiceclDiceLoss(smooth=1e-5)
     cldice_monai = SoftclDiceLoss(smooth=1e-5)
+    cldice_new_base = cldice_loss.BaseCLDiceLoss(base_loss=DiceLoss(include_background=True, batch=False), batch=False)
+    cldice_new_ignoreBackgroundDice = cldice_loss.DiceCLDiceLoss(weights=[3.0, 3.0], batch=False)
 
     loss = cldice_new(pred_onehot, gt_onehot)
     loss_original = cldice_orignal(pred_onehot, gt_onehot)
     loss_monai_dicecldice = dicecldice_monai(pred_onehot, gt_onehot)
     loss_monai_cldice = cldice_monai(pred_onehot, gt_onehot)
     loss_new_base = cldice_new_base(pred_onehot, gt_onehot)
+    loss_ignore_background_by_manual = cldice_new_ignoreBackgroundDice(pred_onehot, gt_onehot)
 
     print("Refactored implementation: ", loss)
     print("Original implementation: ", loss_original)
     print("Monai dice cl dice: ", loss_monai_dicecldice)
     print("Monai cl dice: ", loss_monai_cldice)
-    print("Base cl dice: ", loss_new_base)
+    print("Base ignore bg cl dice: ", loss_new_base)
+    print("Ignore bg diceclddice (weights): ", loss_ignore_background_by_manual)
+    print("--")
 
 
 pred = torch.tensor(
@@ -342,5 +349,56 @@ gt = torch.tensor(
 ).float()
 
 compare_loss_implementation(pred, gt, 1, ignore_background=True)
+
+
+# %%
+def convert_to_one_vs_rest(  # this is more of a one-vs-max strategy
+    prediction,
+):
+    """
+    Converts a multi-class prediction tensor into a one-vs-rest format by building
+    the softmax over each class (one) and the max of all other classes (rest).
+
+    Args:
+        prediction (torch.Tensor): The input prediction tensor of shape (batch, channel, *spatial_dimensions).
+
+    Returns:
+        torch.Tensor: The converted prediction tensor of shape (batch, channel, *spatial_dimensions).
+    """
+    converted_prediction = torch.zeros_like(prediction)
+
+    for channel in range(prediction.shape[1]):
+        # Get logits for the channel class
+        channel_logits = prediction[:, channel].unsqueeze(1)
+
+        # For each pixel, get the logits of the class with the highest probability but exclude the channel class
+        rest_logits = torch.max(prediction[:, torch.arange(prediction.shape[1]) != channel], dim=1).values.unsqueeze(1)
+
+        # Apply softmax to get probabilities and select the probability of the channel class
+        converted_prediction[:, channel] = torch.softmax(torch.cat([rest_logits, channel_logits], dim=1), dim=1)[:, 1]
+
+    return converted_prediction
+
+
+npz_file_path = "/Users/janekfalkenstein/Documents/Arbeit/HiWi/Code/topolosses/tests/loss_data_examples/epoch_100.npz"
+data = np.load(npz_file_path)
+
+# Extract the data from the npz file
+loss = data["loss"]
+pred = data["prediction"]
+gt = data["label"]
+
+# Convert the predictions and labels into torch tensors
+pred_tensor = torch.tensor(pred).float()  # Ensure they are float for compatibility with your function
+gt_tensor = torch.tensor(gt).float()  # Ensure ground truth is float for your function
+
+pred_tensor = convert_to_one_vs_rest(pred_tensor)
+gt_tensor = convert_to_one_vs_rest(gt_tensor)
+
+
+# Call the compare_loss_implementation function
+compare_loss_implementation(pred_tensor, gt_tensor, expected_result=-1, ignore_background=True, num_classes=2)
+
+print("loss of npz file: ", loss)
 
 # %%

@@ -103,12 +103,15 @@ class DiceCLDiceLoss(_Loss):
         if self.softmax and input.shape[1] == 1:
             raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
         if self.weights is not None and len(self.weights) != input.shape[1]:
+            # Is this enough to check if weights is correct?
             raise ValueError(
                 f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]})."
             )
 
         if self.weights is not None:
             self.weights = self.weights.to(input.device)
+            # TODO might have to do something here to have weights calculated correctly even if we do not reduce over batches
+            # do not think so as we reduce the axis accordingly before applying the weights
             if self.batch:
                 weights = self.weights.unsqueeze(0)
                 weights = weights.expand(input.shape[0], -1)
@@ -160,10 +163,14 @@ class DiceCLDiceLoss(_Loss):
         pred_o = torch.sum(input, dim=reduce_axis)
         denominator = ground_o + pred_o
         dice = 1.0 - (2.0 * intersection + self.smooth) / (denominator + self.smooth)
+
+        # Weights are normalized to keep scales consistent
         if self.weights is not None:
-            dice = (dice * (self.weights / self.weights.sum())).sum()
+            weighted_dice = dice * (self.weights / self.weights.sum())
+            dice = torch.mean(weighted_dice.sum(dim=1)) if not self.batch else weighted_dice.sum()
         else:
             dice = torch.mean(dice)
+
         return dice
 
 
