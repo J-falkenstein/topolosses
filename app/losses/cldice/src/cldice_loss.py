@@ -263,8 +263,8 @@ class BaseCLDiceLoss(_Loss):
         if self.softmax and input.shape[1] == 1:
             raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
 
-        # We avoid reapplying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss
-        # Such settings have to be controlled by the user when initializing the base loss
+        # We avoid applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
+        # Such settings have to be controlled by the user when initializing the base loss function
         base_loss = torch.tensor(0.0)
         if self.base_loss is not None and self.alpha < 1:
             base_loss = self.base_loss(input, target)
