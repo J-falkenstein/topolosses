@@ -165,6 +165,7 @@ class DiceCLDiceLoss(_Loss):
         dice = 1.0 - (2.0 * intersection + self.smooth) / (denominator + self.smooth)
 
         # Weights are normalized to keep scales consistent
+        # This is different to the monai implementation of weighted dice loss
         if self.weights is not None:
             weighted_dice = dice * (self.weights / self.weights.sum())
             dice = torch.mean(weighted_dice.sum(dim=1)) if not self.batch else weighted_dice.sum()
