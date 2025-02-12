@@ -3,6 +3,7 @@ import torch
 from .utils import convert_to_one_vs_rest
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
+import warnings
 
 # if typing.TYPE_CHECKING:
 from jaxtyping import Float
@@ -31,8 +32,7 @@ class DiceCLDiceLoss(_Loss):
         include_background: bool = False,
         weights: List[Float] = None,
     ):
-        """
-        Initializes the DiceCLDiceLoss object.
+        """Initializes the DiceCLDiceLoss object.
 
         Args:
             iter_ (int): Number of iterations for soft skeleton computation. Higher values refine
@@ -48,9 +48,8 @@ class DiceCLDiceLoss(_Loss):
                 multi-class segmentation. Defaults to `False`.
             batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
                 Defaults to `False`, where the loss is computed independently for each item for the Dice and CLDice component calculation.
-            include_background (bool): If `True`, includes the background class in CLDice component.
-                Defaults to `False`. Background inclusion in the Dice component should be controlled using
-                `weights` instead.
+            include_background (bool): If `True`, includes the background class in CLDice component. Defaults to `False`.
+                Background inclusion in the Dice component should be controlled using `weights` instead.
             weights (List[float], optional): Class-wise weights for the Dice component, allowing emphasis
                 on specific classes or ignoring classes. Defaults to `None` (unweighted). Weights are **only
                 applied to the Dice component**, not the CLDice component.
@@ -78,13 +77,14 @@ class DiceCLDiceLoss(_Loss):
         self.include_background = include_background
         self.weights = None if weights == None else torch.tensor(weights)
 
-    # do i need or can i do typing here TODO?
+    # TODO check that i do not change variables here that affect the next time forward is called
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Computes the CLDice loss and Dice loss for the given input and target.
 
         Args:
-            input (torch.Tensor): The predicted segmentation map.
-            target (torch.Tensor): The ground truth segmentation map.
+            input (torch.Tensor): Predicted segmentation map of shape BC[spatial dimensions],
+                where C is the number of classes, and [spatial dimensions] represent height, width, and optionally depth.
+            target (torch.Tensor): Ground truth segmentation map of shape BC[spatial dimensions]
 
         Returns:
             tuple: A tuple containing the total DiceCLDice loss and a dictionary of individual loss components.
@@ -98,23 +98,19 @@ class DiceCLDiceLoss(_Loss):
 
         if target.shape != input.shape:
             raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
-        if not self.include_background and input.shape[1] == 1:
-            raise ValueError("single channel prediction, `include_background=False` is not a valid combination.")
+        if input.shape[1] == 1 and not self.include_background:
+            warnings.warn("Single-channel prediction detected. Automatically setting `include_background=True`.")
+            self.include_background = True
         if self.softmax and input.shape[1] == 1:
             raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
         if self.weights is not None and len(self.weights) != input.shape[1]:
-            # Is this enough to check if weights is correct?
+            # Weights shape is independent of inlcude_background because they apply only to the Dice component, while `include_background` affects only CLDice calculations.
             raise ValueError(
                 f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]})."
             )
 
         if self.weights is not None:
             self.weights = self.weights.to(input.device)
-            # TODO might have to do something here to have weights calculated correctly even if we do not reduce over batches
-            # do not think so as we reduce the axis accordingly before applying the weights
-            if self.batch:
-                weights = self.weights.unsqueeze(0)
-                weights = weights.expand(input.shape[0], -1)
 
         if self.sigmoid:
             input = torch.sigmoid(input)
@@ -158,6 +154,7 @@ class DiceCLDiceLoss(_Loss):
             torch.Tensor: The Dice loss as a scalar
 
         """
+        # TODO if weights = 0 at some channels, we can reduce the number of channels in the computation
         intersection = torch.sum(target * input, dim=reduce_axis)
         ground_o = torch.sum(target, dim=reduce_axis)
         pred_o = torch.sum(input, dim=reduce_axis)

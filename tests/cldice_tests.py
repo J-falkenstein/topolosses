@@ -83,8 +83,11 @@ def compare_loss_implementation(pred, gt, expected_result, ignore_background=Tru
     cldice_orignal = cldice_loss_orignal.Multiclass_CLDice()
     dicecldice_monai = SoftDiceclDiceLoss(smooth=1e-5)
     cldice_monai = SoftclDiceLoss(smooth=1e-5)
-    cldice_new_base = cldice_loss.BaseCLDiceLoss(base_loss=DiceLoss(include_background=True, batch=False), batch=False)
-    cldice_new_ignoreBackgroundDice = cldice_loss.DiceCLDiceLoss(weights=[3.0, 3.0], batch=False)
+    cldice_new_base = cldice_loss.BaseCLDiceLoss(
+        base_loss=DiceLoss(include_background=False, batch=False), batch=False
+    )
+    cldice_new_ignoreBackgroundDice = cldice_loss.DiceCLDiceLoss(weights=[0, 3.0], batch=False)
+    cldice_new_ignoreBackgroundDice2 = cldice_loss.DiceCLDiceLoss(weights=[3.0, 3.0], batch=True)
 
     loss = cldice_new(pred_onehot, gt_onehot)
     loss_original = cldice_orignal(pred_onehot, gt_onehot)
@@ -92,6 +95,7 @@ def compare_loss_implementation(pred, gt, expected_result, ignore_background=Tru
     loss_monai_cldice = cldice_monai(pred_onehot, gt_onehot)
     loss_new_base = cldice_new_base(pred_onehot, gt_onehot)
     loss_ignore_background_by_manual = cldice_new_ignoreBackgroundDice(pred_onehot, gt_onehot)
+    loss_ignore_background_by_manual2 = cldice_new_ignoreBackgroundDice2(pred_onehot, gt_onehot)
 
     print("Refactored implementation: ", loss)
     print("Original implementation: ", loss_original)
