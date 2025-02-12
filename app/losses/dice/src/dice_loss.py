@@ -52,8 +52,7 @@ class DiceLoss(_Loss):
         """Initializes the DiceLoss object.
 
         Args:
-            smooth (float): Smoothing factor to avoid division by zero in Dice and CLDice calculations.
-                Defaults to 1e-5.
+            smooth (float): Smoothing factor to avoid division by zero added to numeraotr and denominator. Defaults to 1e-5.
             sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the loss.
                 Defaults to `False`.
             softmax (bool): If `True`, applies a softmax activation to the input before computing the loss.
@@ -61,13 +60,11 @@ class DiceLoss(_Loss):
             convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for
                 multi-class segmentation. Defaults to `False`.
             batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
-                Defaults to `False`, where the loss is computed independently for each item for the Dice and CLDice component calculation.
+                Defaults to `False`, where the loss is computed independently for each item for the Dice calculation and reduced afterwards.
             include_background (bool): If `False`, channel index 0 (background class) is excluded from the calculation.
-                Defaults to `False`. Background inclusion in the Dice component should be controlled using
-                `weights` instead.
-            weights (List[float], optional): Class-wise weights for the Dice component, allowing emphasis
-                on specific classes or ignoring classes. Defaults to `None` (unweighted). Weights are **only
-                applied to the Dice component**, not the CLDice component.
+                Defaults to `False`.
+            weights (List[float], optional): Class-wise weights with length equal to the number of classes, allowing emphasis on specific classes or ignoring classes.
+                Defaults to `None` (unweighted).
 
         Raises:
             ValueError: If more than one of `sigmoid`, `softmax`, or `convert_to_one_vs_rest` is set to `True`.
@@ -106,21 +103,29 @@ class DiceLoss(_Loss):
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
             ValueError: If softmax=True and the number of channels for the prediction is 1.
-            ValueError: If single channel prediction is used and include_background=False.
-
         """
         if target.shape != input.shape:
             raise ValueError(f"Ground truth has different shape ({target.shape}) from input ({input.shape})")
         if input.shape[1] == 1 and not self.include_background:
-            warnings.warn("Single-channel prediction detected. Automatically setting `include_background=True`.")
+            warnings.warn("single channel prediction, `include_background=False` ignored.")
             self.include_background = True
         if self.softmax and input.shape[1] == 1:
             raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
-        if self.weights is not None and len(self.weights) != input.shape[1]:
-            # Is this enough to check if weights is correct?
+        if self.weights is not None and len(self.weights) != (input.shape[1] - (0 if self.include_background else 1)):
             raise ValueError(
-                f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]})."
+                f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes."
+                f"({'including' if self.include_background else 'excluding'} background) ({input.shape[1]})."
             )
+
+        if self.weights is not None:
+            self.weights = self.weights.to(input.device)
+            non_zero_weights_mask = self.weights != 0
+            input = input[:, non_zero_weights_mask]
+            target = target[:, non_zero_weights_mask]
+
+        if not self.include_background:
+            input = input[:, 1:]
+            target = target[:, 1:]
 
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 
@@ -133,7 +138,7 @@ class DiceLoss(_Loss):
         # Weights are normalized to keep scales consistent
         # This is different to the monai implementation of weighted dice loss
         if self.weights is not None:
-            weighted_dice = dice * (self.weights / self.weights.sum())
+            weighted_dice = dice * (self.weights[non_zero_weights_mask] / self.weights[non_zero_weights_mask].sum())
             dice = torch.mean(weighted_dice.sum(dim=1)) if not self.batch else weighted_dice.sum()
         else:
             dice = torch.mean(dice)

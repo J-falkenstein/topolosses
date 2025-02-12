@@ -9,6 +9,7 @@ import warnings
 from jaxtyping import Float
 
 
+# TODO check that both classes have all the same adjustments. Some redundancy can lead to different behavioru where same behaviour is expected
 class DiceCLDiceLoss(_Loss):
     """A loss function for segmentation tasks that combines a Dice and CLDice componenent.
 
@@ -77,7 +78,6 @@ class DiceCLDiceLoss(_Loss):
         self.include_background = include_background
         self.weights = None if weights == None else torch.tensor(weights)
 
-    # TODO check that i do not change variables here that affect the next time forward is called
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Computes the CLDice loss and Dice loss for the given input and target.
 
@@ -92,7 +92,6 @@ class DiceCLDiceLoss(_Loss):
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
             ValueError: If softmax=True and the number of channels for the prediction is 1.
-            ValueError: If single channel prediction is used and include_background=False.
 
         """
 
@@ -109,9 +108,6 @@ class DiceCLDiceLoss(_Loss):
                 f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]})."
             )
 
-        if self.weights is not None:
-            self.weights = self.weights.to(input.device)
-
         if self.sigmoid:
             input = torch.sigmoid(input)
         elif self.softmax:
@@ -122,6 +118,10 @@ class DiceCLDiceLoss(_Loss):
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
         starting_class = 0 if self.include_background else 1
 
+        dice = torch.tensor(0.0)
+        if self.alpha < 1:
+            dice = self._compute_dice_loss(input, target, reduce_axis)
+
         cl_dice = torch.tensor(0.0)
         if self.alpha > 0:
             cl_dice = compute_cldice_loss(
@@ -131,9 +131,6 @@ class DiceCLDiceLoss(_Loss):
                 self.iter_,
                 reduce_axis,
             )
-        dice = torch.tensor(0.0)
-        if self.alpha < 1:
-            dice = self._compute_dice_loss(input, target, reduce_axis)
 
         dice_cl_dice_loss = (1 - self.alpha) * dice + self.alpha * cl_dice
 
@@ -154,7 +151,9 @@ class DiceCLDiceLoss(_Loss):
             torch.Tensor: The Dice loss as a scalar
 
         """
+
         if self.weights is not None:
+            self.weights = self.weights.to(input.device)
             non_zero_weights_mask = self.weights != 0
             input = input[:, non_zero_weights_mask]
             target = target[:, non_zero_weights_mask]
@@ -244,23 +243,24 @@ class BaseCLDiceLoss(_Loss):
         """Computes the CLDice loss and base loss for the given input and target.
 
         Args:
-            input (torch.Tensor): The predicted segmentation map.
-            target (torch.Tensor): The ground truth segmentation map.
+            input (torch.Tensor): Predicted segmentation map of shape BC[spatial dimensions],
+                where C is the number of classes, and [spatial dimensions] represent height, width, and optionally depth.
+            target (torch.Tensor): Ground truth segmentation map of shape BC[spatial dimensions]
 
         Returns:
-            tuple: A tuple containing the total BaseCLDice loss and a dictionary of individual loss components.
+            tuple: A tuple containing the total DiceCLDice loss and a dictionary of individual loss components.
 
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
             ValueError: If softmax=True and the number of channels for the prediction is 1.
-            ValueError: If single channel prediction is used and include_background=False.
 
         """
 
         if target.shape != input.shape:
             raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
-        if not self.include_background and input.shape[1] == 1:
-            raise ValueError("single channel prediction, `include_background=False` is not a valid combination.")
+        if input.shape[1] == 1 and not self.include_background:
+            warnings.warn("Single-channel prediction detected. Automatically setting `include_background=True`.")
+            self.include_background = True
         if self.softmax and input.shape[1] == 1:
             raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
 
