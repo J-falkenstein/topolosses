@@ -46,7 +46,7 @@ class DiceCLDiceLoss(_Loss):
                 Defaults to `False`.
             convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for
                 multi-class segmentation. Defaults to `False`.
-            batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
+            batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division for both CLDice and Dice components.
                 Defaults to `False`, where the loss is computed independently for each item for the Dice and CLDice component calculation.
             include_background (bool): If `True`, includes the background class in CLDice component. Defaults to `False`.
                 Background inclusion in the Dice component should be controlled using `weights` instead.
@@ -154,7 +154,11 @@ class DiceCLDiceLoss(_Loss):
             torch.Tensor: The Dice loss as a scalar
 
         """
-        # TODO if weights = 0 at some channels, we can reduce the number of channels in the computation
+        if self.weights is not None:
+            non_zero_weights_mask = self.weights != 0
+            input = input[:, non_zero_weights_mask]
+            target = target[:, non_zero_weights_mask]
+
         intersection = torch.sum(target * input, dim=reduce_axis)
         ground_o = torch.sum(target, dim=reduce_axis)
         pred_o = torch.sum(input, dim=reduce_axis)
@@ -164,7 +168,7 @@ class DiceCLDiceLoss(_Loss):
         # Weights are normalized to keep scales consistent
         # This is different to the monai implementation of weighted dice loss
         if self.weights is not None:
-            weighted_dice = dice * (self.weights / self.weights.sum())
+            weighted_dice = dice * (self.weights[non_zero_weights_mask] / self.weights[non_zero_weights_mask].sum())
             dice = torch.mean(weighted_dice.sum(dim=1)) if not self.batch else weighted_dice.sum()
         else:
             dice = torch.mean(dice)
