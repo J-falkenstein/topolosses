@@ -1,15 +1,12 @@
-from typing import List
+from typing import List, Optional
 import torch
 from .utils import convert_to_one_vs_rest
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
 import warnings
-
-# if typing.TYPE_CHECKING:
-from jaxtyping import Float
+from torch import Tensor
 
 
-# TODO Adjust to dice
 class DiceLoss(_Loss):
     """
     DiceCLDice is a loss function for segmentation tasks that combines a Dice component and a CLDice componenent defined in:
@@ -47,12 +44,12 @@ class DiceLoss(_Loss):
         convert_to_one_vs_rest=False,
         batch=False,
         include_background=True,
-        weights: List[Float] = None,
+        weights: Optional[Tensor] = None,
     ):
         """Initializes the DiceLoss object.
 
         Args:
-            smooth (float): Smoothing factor to avoid division by zero added to numeraotr and denominator. Defaults to 1e-5.
+            smooth (float): Smoothing factor to avoid division by zero added to numerator and denominator. Defaults to 1e-5.
             sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the loss.
                 Defaults to `False`.
             softmax (bool): If `True`, applies a softmax activation to the input before computing the loss.
@@ -63,8 +60,9 @@ class DiceLoss(_Loss):
                 Defaults to `False`, where the loss is computed independently for each item for the Dice calculation and reduced afterwards.
             include_background (bool): If `False`, channel index 0 (background class) is excluded from the calculation.
                 Defaults to `False`.
-            weights (List[float], optional): Class-wise weights with length equal to the number of classes, allowing emphasis on specific classes or ignoring classes.
-                Defaults to `None` (unweighted).
+            weights (Tensor, optional): A 1D tensor of class-wise weights, with length equal to the number of classes (adjusted for background inclusion).
+                It allows emphasizing or ignoring classes. Defaults to `None` (unweighted).
+
 
         Raises:
             ValueError: If more than one of `sigmoid`, `softmax`, or `convert_to_one_vs_rest` is set to `True`.
@@ -87,7 +85,8 @@ class DiceLoss(_Loss):
         self.convert_to_one_vs_rest = convert_to_one_vs_rest
         self.batch = batch
         self.include_background = include_background
-        self.weights = None if weights == None else torch.tensor(weights)
+        self.register_buffer("weights", weights)
+        self.weights: Optional[Tensor]
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Computes the Dice loss.
@@ -98,7 +97,7 @@ class DiceLoss(_Loss):
             target (torch.Tensor): Ground truth segmentation map of shape BC[spatial dimensions]
 
         Returns:
-            torch.Tensor: The Dice loss as a scalar value.
+            torch.Tensor: The Dice loss as a scalar.
 
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
@@ -111,6 +110,8 @@ class DiceLoss(_Loss):
             self.include_background = True
         if self.softmax and input.shape[1] == 1:
             raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
+        if self.weights is not None and len(self.weights.shape) != 1:
+            raise ValueError("weights must be a 1-dimensional tensor (vector).")
         if self.weights is not None and len(self.weights) != (input.shape[1] - (0 if self.include_background else 1)):
             raise ValueError(
                 f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes."
@@ -118,7 +119,8 @@ class DiceLoss(_Loss):
             )
 
         if self.weights is not None:
-            self.weights = self.weights.to(input.device)
+            # removed to device becasue they are autamtically moved when model is moved to device,
+            # could be become problematic if independent inputs from different devices are passed but also pytroch implementation are not handling this case
             non_zero_weights_mask = self.weights != 0
             input = input[:, non_zero_weights_mask]
             target = target[:, non_zero_weights_mask]
@@ -126,6 +128,13 @@ class DiceLoss(_Loss):
         if not self.include_background:
             input = input[:, 1:]
             target = target[:, 1:]
+
+        if self.sigmoid:
+            input = torch.sigmoid(input)
+        elif self.softmax:
+            input = torch.softmax(input, 1)
+        elif self.convert_to_one_vs_rest:
+            input = convert_to_one_vs_rest(input)
 
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 

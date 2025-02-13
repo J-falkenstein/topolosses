@@ -5,11 +5,11 @@ from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
 import warnings
 
-# if typing.TYPE_CHECKING:
-from jaxtyping import Float
-
 
 # TODO check that both classes have all the same adjustments. Some redundancy can lead to different behavioru where same behaviour is expected
+# OR merge the classes: have one flag for no base loss, and the base loss arugment, if that is non we do the standard dice loss as in DiceCLDiceLoss,
+# can inlcude one warning that the base loss is not used if it is provided but flag no base is true
+# TODO add weights to buffer and potentiall remove to device
 class DiceCLDiceLoss(_Loss):
     """A loss function for segmentation tasks that combines a Dice and CLDice componenent.
 
@@ -31,7 +31,7 @@ class DiceCLDiceLoss(_Loss):
         convert_to_one_vs_rest: bool = False,
         batch: bool = False,
         include_background: bool = False,
-        weights: List[Float] = None,
+        weights: List[float] = None,
     ):
         """Initializes the DiceCLDiceLoss object.
 
