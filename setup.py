@@ -19,11 +19,7 @@ setup(
         "Operating System :: OS Independent",
         # TODO add more classifiers
     ],
-    # TODO find out what the dependencies are 
-
-    # all the packages needed for this project,
-    install_requires=[],
+    install_requires=["torch>=1.9"],
     extras_require={},
-    # TODO how x
     python_requires=">=3.7",
 )
