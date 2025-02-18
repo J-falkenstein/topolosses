@@ -1,10 +1,12 @@
+import warnings
 from typing import List, Optional
+
 import torch
-from .utils import convert_to_one_vs_rest
+from torch import Tensor
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
-import warnings
-from torch import Tensor
+
+from ...utils import convert_to_one_vs_rest
 
 
 # TODO check that both classes have all the same adjustments. Some redundancy can lead to different behavioru where same behaviour is expected

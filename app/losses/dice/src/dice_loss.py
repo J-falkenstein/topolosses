@@ -1,10 +1,11 @@
-from typing import List, Optional
-import torch
-from .utils import convert_to_one_vs_rest
-from torch.nn.modules.loss import _Loss
-import torch.nn.functional as F
 import warnings
+from typing import List, Optional
+
+import torch
 from torch import Tensor
+from torch.nn.modules.loss import _Loss
+
+from ...utils import convert_to_one_vs_rest
 
 
 class DiceLoss(_Loss):

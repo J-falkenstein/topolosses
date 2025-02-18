@@ -1,14 +1,10 @@
-from __future__ import annotations
 import torch
-import typing
-
-if typing.TYPE_CHECKING:
-    from jaxtyping import Float
 
 
-def convert_to_one_vs_rest(  # this is more of a one-vs-max strategy
-    prediction: Float[torch.Tensor, "batch channel *spatial_dimensions"],
-) -> Float[torch.Tensor, "batch channel *spatial_dimensions"]:
+# this is more of a one-vs-max strategy
+def convert_to_one_vs_rest(
+    prediction: torch.Tensor,
+) -> torch.Tensor:
     """
     Converts a multi-class prediction tensor into a one-vs-rest format by building
     the softmax over each class (one) and the max of all other classes (rest).
