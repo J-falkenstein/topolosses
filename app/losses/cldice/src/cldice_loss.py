@@ -4,12 +4,12 @@ from .utils import convert_to_one_vs_rest
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
 import warnings
+from torch import Tensor
 
 
 # TODO check that both classes have all the same adjustments. Some redundancy can lead to different behavioru where same behaviour is expected
 # OR merge the classes: have one flag for no base loss, and the base loss arugment, if that is non we do the standard dice loss as in DiceCLDiceLoss,
 # can inlcude one warning that the base loss is not used if it is provided but flag no base is true
-# TODO add weights to buffer and potentiall remove to device
 class DiceCLDiceLoss(_Loss):
     """A loss function for segmentation tasks that combines a Dice and CLDice componenent.
 
@@ -51,7 +51,7 @@ class DiceCLDiceLoss(_Loss):
                 Defaults to `False`, where the loss is computed independently for each item for the Dice and CLDice component calculation.
             include_background (bool): If `True`, includes the background class in CLDice component. Defaults to `False`.
                 Background inclusion in the Dice component should be controlled using `weights` instead.
-            weights (List[float], optional): Class-wise weights for the Dice component, allowing emphasis
+            weights (Tensor, optional): Class-wise weights for the Dice component, allowing emphasis
                 on specific classes or ignoring classes. Defaults to `None` (unweighted). Weights are **only
                 applied to the Dice component**, not the CLDice component.
 
@@ -76,7 +76,8 @@ class DiceCLDiceLoss(_Loss):
         self.convert_to_one_vs_rest = convert_to_one_vs_rest
         self.batch = batch
         self.include_background = include_background
-        self.weights = None if weights == None else torch.tensor(weights)
+        self.register_buffer("weights", weights)
+        self.weights: Optional[Tensor]
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Computes the CLDice loss and Dice loss for the given input and target.
@@ -136,9 +137,9 @@ class DiceCLDiceLoss(_Loss):
 
         return dice_cl_dice_loss, {"dice": (1 - self.alpha) * dice, "cldice": self.alpha * cl_dice}
 
-    # Could possibly be reused for other topo losses that are by defaul combined wiht dice loss
+    # TODO could possibly be reused for other topo losses that are by default combined wiht dice loss
     def _compute_dice_loss(self, input: torch.Tensor, target: torch.Tensor, reduce_axis: List[int]) -> torch.Tensor:
-        """Simplified function to compute the (weighted) Dice loss as part of the DiceCLDice loss.
+        """Function to compute the (weighted) Dice loss as part of the DiceCLDice loss.
 
         Args:
             input (torch.Tensor): The predicted segmentation map with shape (N, C, ...),
@@ -153,7 +154,6 @@ class DiceCLDiceLoss(_Loss):
         """
 
         if self.weights is not None:
-            self.weights = self.weights.to(input.device)
             non_zero_weights_mask = self.weights != 0
             input = input[:, non_zero_weights_mask]
             target = target[:, non_zero_weights_mask]

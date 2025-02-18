@@ -8,31 +8,7 @@ from torch import Tensor
 
 
 class DiceLoss(_Loss):
-    """
-    DiceCLDice is a loss function for segmentation tasks that combines a Dice component and a CLDice componenent defined in:
-
-        Shit et al. (2021) clDice -- A Novel Topology-Preserving Loss Function
-        for Tubular Structure Segmentation. (https://arxiv.org/abs/2003.07311)
-
-
-    Attributes:
-        iter_ (int): Number of iterations for soft skeleton computation. Higher values refine the skeleton but increase computation time. Default is 3.
-        smooth (float): Smoothing factor to avoid division by zero in Dice and CLDice calculations. Default is 1e-5.
-        alpha (float): Weighting factor for the CLDice loss. Setting `alpha=0` makes the loss equivalent to the standard Dice loss. Default is 0.5.
-        sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the loss. Default is `False`.
-        softmax (bool): If `True`, applies a softmax activation to the input before computing the loss. Default is `False`.
-        convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for multi-class segmentation. Default is `False`.
-        batch (bool): If `True`, the loss is reduced across the batch dimension. Default is `False`.
-        include_background (bool): If `True`, includes the background class in CLDice computation. Default is `False`.
-                                   Note: Background inclusion in the Dice component should be controlled using `weights` instead.
-        weights (List[float] or None): Class-wise weights for the Dice component, allowing emphasis on specific classes.
-                                       Default is `None` (unweighted). Weights are **only applied to the Dice component**,
-                                       not the CLDice component. This can be used to ignore the background in the Dice loss.
-
-    Methods:
-        forward(input, target): Computes the CLDice loss and Dice loss for the given input and target.
-
-    """
+    """Computes the Dice loss between two tensors."""
 
     def __init__(
         self,
@@ -89,7 +65,7 @@ class DiceLoss(_Loss):
         self.weights: Optional[Tensor]
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """Computes the Dice loss.
+        """Computes the Dice loss between two tensors.
 
         Args:
             input (torch.Tensor): Predicted segmentation map of shape BC[spatial dimensions],
@@ -119,8 +95,6 @@ class DiceLoss(_Loss):
             )
 
         if self.weights is not None:
-            # removed to device becasue they are autamtically moved when model is moved to device,
-            # could be become problematic if independent inputs from different devices are passed but also pytroch implementation are not handling this case
             non_zero_weights_mask = self.weights != 0
             input = input[:, non_zero_weights_mask]
             target = target[:, non_zero_weights_mask]

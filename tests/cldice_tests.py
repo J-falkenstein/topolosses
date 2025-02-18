@@ -86,8 +86,8 @@ def compare_loss_implementation(pred, gt, expected_result, ignore_background=Tru
     cldice_new_base = cldice_loss.BaseCLDiceLoss(
         base_loss=DiceLoss(include_background=False, batch=False), batch=False
     )
-    cldice_new_ignoreBackgroundDice = cldice_loss.DiceCLDiceLoss(weights=[0, 3.0], batch=False)
-    cldice_new_ignoreBackgroundDice2 = cldice_loss.DiceCLDiceLoss(weights=[3.0, 3.0], batch=True)
+    cldice_new_ignoreBackgroundDice = cldice_loss.DiceCLDiceLoss(weights=torch.tensor([0, 3.0]), batch=False)
+    cldice_new_ignoreBackgroundDice2 = cldice_loss.DiceCLDiceLoss(weights=torch.tensor([3.0, 3.0]), batch=True)
 
     loss = cldice_new(pred_onehot, gt_onehot)
     loss_original = cldice_orignal(pred_onehot, gt_onehot)
