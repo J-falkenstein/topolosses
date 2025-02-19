@@ -20,6 +20,7 @@ setup(
         # TODO add more classifiers
     ],
     install_requires=["torch>=1.9"],
+    # Could add extra requires for dev modes
     extras_require={},
     python_requires=">=3.7",
 )
