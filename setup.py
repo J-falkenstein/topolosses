@@ -1,14 +1,14 @@
 from setuptools import find_packages, setup
 
-with open("app/README.md", "r") as f:
+with open("topolosses/README.md", "r") as f:
     long_description = f.read()
 
 setup(
     name="topolosses",
-    version="0.0.10",
+    version="0.0.20",
     description="A collection of losses and metrices for topology preserving image segmentation.",
-    package_dir={"": "app"},
-    packages=find_packages(where="app"),
+    package_dir={"": "topolosses"},
+    packages=find_packages(where="topolosses"),
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="",
@@ -17,6 +17,8 @@ setup(
     license="MIT",
     classifiers=[
         "Operating System :: OS Independent",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python",
         # TODO add more classifiers
     ],
     install_requires=["torch>=1.9"],

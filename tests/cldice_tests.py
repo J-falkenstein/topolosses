@@ -1,3 +1,6 @@
+## TODO: adjust entire testing strategy make it more concise and easier to understand
+
+
 # %%
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,6 +9,7 @@ import sys
 import torch
 from matplotlib.colors import ListedColormap
 from monai.losses import SoftDiceclDiceLoss, SoftclDiceLoss, DiceLoss
+
 
 # Add the parent directory to the system path
 sys.path.append("..")
@@ -58,10 +62,9 @@ ax[2].imshow(draw_pairing, cmap=cmap)
 
 # %%
 import importlib
-import app.losses.cldice.src.cldice_loss as cldice_loss
+from topolosses.losses import DiceCLDiceLoss, BaseCLDiceLoss
 import losses_original.dice_losses as cldice_loss_orignal
 
-importlib.reload(cldice_loss)
 importlib.reload(cldice_loss_orignal)
 
 
@@ -79,15 +82,13 @@ def compare_loss_implementation(pred, gt, expected_result, ignore_background=Tru
         gt_onehot = gt
         pred_onehot = pred
 
-    cldice_new = cldice_loss.DiceCLDiceLoss()
+    cldice_new = DiceCLDiceLoss()
     cldice_orignal = cldice_loss_orignal.Multiclass_CLDice()
     dicecldice_monai = SoftDiceclDiceLoss(smooth=1e-5)
     cldice_monai = SoftclDiceLoss(smooth=1e-5)
-    cldice_new_base = cldice_loss.BaseCLDiceLoss(
-        base_loss=DiceLoss(include_background=False, batch=False), batch=False
-    )
-    cldice_new_ignoreBackgroundDice = cldice_loss.DiceCLDiceLoss(weights=torch.tensor([0, 3.0]), batch=False)
-    cldice_new_ignoreBackgroundDice2 = cldice_loss.DiceCLDiceLoss(weights=torch.tensor([3.0, 3.0]), batch=True)
+    cldice_new_base = BaseCLDiceLoss(base_loss=DiceLoss(include_background=False, batch=False), batch=False)
+    cldice_new_ignoreBackgroundDice = DiceCLDiceLoss(weights=torch.tensor([0, 3.0]), batch=False)
+    cldice_new_ignoreBackgroundDice2 = DiceCLDiceLoss(weights=torch.tensor([3.0, 3.0]), batch=True)
 
     loss = cldice_new(pred_onehot, gt_onehot)
     loss_original = cldice_orignal(pred_onehot, gt_onehot)
