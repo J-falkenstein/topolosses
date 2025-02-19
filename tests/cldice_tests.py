@@ -59,7 +59,7 @@ ax[2].imshow(draw_pairing, cmap=cmap)
 # %%
 import importlib
 import app.losses.cldice.src.cldice_loss as cldice_loss
-import tests.losses_original.dice_losses as cldice_loss_orignal
+import losses_original.dice_losses as cldice_loss_orignal
 
 importlib.reload(cldice_loss)
 importlib.reload(cldice_loss_orignal)

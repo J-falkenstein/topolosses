@@ -8,9 +8,6 @@ from losses_original.utils import convert_to_one_vs_rest, soft_skel
 
 from torch.nn.modules.loss import _Loss
 
-# if typing.TYPE_CHECKING:
-from jaxtyping import Float
-
 
 class Multiclass_CLDice(_Loss):
     """
@@ -48,7 +45,7 @@ class Multiclass_CLDice(_Loss):
 
     def __init__(
         self,
-        weights: List[Float] = [],
+        weights: List = [],
         iter_=3,
         alpha=0.5,
         smooth=1e-5,
