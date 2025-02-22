@@ -85,9 +85,9 @@ class DiceLoss(_Loss):
         if input.shape[1] == 1 and not self.include_background:
             warnings.warn("single channel prediction, `include_background=False` ignored.")
             self.include_background = True
+            # TODO forward should not modify state of the object!!!
         if self.softmax and input.shape[1] == 1:
-            warnings.warn("single channel prediction, `softmax=True` ignored.")
-            self.softmax = False
+            raise ValueError("single channel prediction and `softmax=True` is not supported.")
         if self.weights is not None and len(self.weights.shape) != 1:
             raise ValueError("weights must be a 1-dimensional tensor (vector).")
         if self.weights is not None and len(self.weights) != (input.shape[1] - (0 if self.include_background else 1)):

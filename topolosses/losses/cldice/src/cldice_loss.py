@@ -103,6 +103,7 @@ class DiceCLDiceLoss(_Loss):
         if input.shape[1] == 1 and not self.include_background:
             warnings.warn("Single-channel prediction detected. Automatically setting `include_background=True`.")
             self.include_background = True
+            # TODO forward should not modify state of the object!!!
         if self.softmax and input.shape[1] == 1:
             raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
         if self.weights is not None and len(self.weights) != input.shape[1]:
@@ -110,7 +111,13 @@ class DiceCLDiceLoss(_Loss):
             raise ValueError(
                 f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]})."
             )
-
+        # check that spatial dimension is at least 2D.
+        if len(input.shape) < 4:
+            raise ValueError(
+                "Invalid input tensor shape. Expected at least 4 dimensions in the format (batch, channel, [spatial dims]), "
+                "where 'spatial dims' must be at least 2D (height, width). "
+                f"Received shape: {input.shape}."
+            )
         if self.sigmoid:
             input = torch.sigmoid(input)
         elif self.softmax:
@@ -137,7 +144,7 @@ class DiceCLDiceLoss(_Loss):
 
         dice_cl_dice_loss = (1 - self.alpha) * dice + self.alpha * cl_dice
 
-        return dice_cl_dice_loss, {"dice": (1 - self.alpha) * dice, "cldice": self.alpha * cl_dice}
+        return dice_cl_dice_loss  # , {"dice": (1 - self.alpha) * dice, "cldice": self.alpha * cl_dice}
 
     # TODO could possibly be reused for other topo losses that are by default combined wiht dice loss
     def _compute_dice_loss(self, input: torch.Tensor, target: torch.Tensor, reduce_axis: List[int]) -> torch.Tensor:
@@ -250,7 +257,7 @@ class BaseCLDiceLoss(_Loss):
             target (torch.Tensor): Ground truth segmentation map of shape BC[spatial dimensions]
 
         Returns:
-            tuple: A tuple containing the total DiceCLDice loss and a dictionary of individual loss components.
+            tuple: A tuple containing the total DiceCLDice loss and a dictionary of individual loss components. # TODO define the return type
 
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
@@ -263,6 +270,7 @@ class BaseCLDiceLoss(_Loss):
         if input.shape[1] == 1 and not self.include_background:
             warnings.warn("Single-channel prediction detected. Automatically setting `include_background=True`.")
             self.include_background = True
+            # TODO forward should not modify state of the object!!!
         if self.softmax and input.shape[1] == 1:
             raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
 
@@ -294,7 +302,7 @@ class BaseCLDiceLoss(_Loss):
 
         base_cl_dice_loss = (1 - self.alpha) * base_loss + self.alpha * cl_dice
 
-        return base_cl_dice_loss, {"base": (1 - self.alpha) * base_loss, "cldice": self.alpha * cl_dice}
+        return base_cl_dice_loss  # , {"base": (1 - self.alpha) * base_loss, "cldice": self.alpha * cl_dice}
 
 
 def compute_cldice_loss(
