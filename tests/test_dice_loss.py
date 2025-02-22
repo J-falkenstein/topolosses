@@ -47,6 +47,26 @@ TEST_CASES = [
         },
         0.383713,
     ],
+    [  # shape: (2, 2, 3), (2, 2, 3)
+        {"include_background": False, "smooth": 0},
+        {
+            "input": torch.tensor([[[1.0, 1.0, 0.0], [0.0, 0.0, 1.0]], [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0]]]),
+            "target": torch.nn.functional.one_hot(torch.tensor([[[0.0, 0.0, 1.0]], [[0.0, 1.0, 0.0]]]).to(torch.int64))
+            .permute(0, 3, 2, 1)
+            .squeeze(-1),
+        },
+        0.0,
+    ],
+    [  # shape: (2, 2, 3), (2, 2, 3)
+        {"weights": torch.tensor([0.0, 1.0]), "smooth": 0},
+        {
+            "input": torch.tensor([[[1.0, 1.0, 0.0], [0.0, 0.0, 1.0]], [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0]]]),
+            "target": torch.nn.functional.one_hot(torch.tensor([[[0.0, 0.0, 1.0]], [[0.0, 1.0, 0.0]]]).to(torch.int64))
+            .permute(0, 3, 2, 1)
+            .squeeze(-1),
+        },
+        0.0,
+    ],
 ]
 
 

@@ -37,6 +37,22 @@ TEST_CASES = [
         },
         0.307773,
     ],
+    [  # shape: (2, 1, 2, 2), (2, 1, 2, 2)
+        {"include_background": True, "smooth": 1e-4, "alpha": 0, "weights": torch.tensor([0.5])},
+        {
+            "input": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]),
+            "target": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]),
+        },
+        0.307773,
+    ],
+    [  # shape: (2, 1, 2, 2), (2, 1, 2, 2)
+        {"include_background": True, "smooth": 1e-4, "alpha": 0, "weights": torch.tensor([8])},
+        {
+            "input": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]),
+            "target": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]),
+        },
+        0.307773,
+    ],
 ]
 
 

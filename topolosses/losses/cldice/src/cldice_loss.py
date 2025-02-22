@@ -100,24 +100,31 @@ class DiceCLDiceLoss(_Loss):
 
         if target.shape != input.shape:
             raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
-        if input.shape[1] == 1 and not self.include_background:
-            warnings.warn("Single-channel prediction detected. Automatically setting `include_background=True`.")
-            self.include_background = True
-            # TODO forward should not modify state of the object!!!
-        if self.softmax and input.shape[1] == 1:
-            raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
         if self.weights is not None and len(self.weights) != input.shape[1]:
             # Weights shape is independent of inlcude_background because they apply only to the Dice component, while `include_background` affects only CLDice calculations.
             raise ValueError(
                 f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]})."
             )
-        # check that spatial dimension is at least 2D.
         if len(input.shape) < 4:
             raise ValueError(
                 "Invalid input tensor shape. Expected at least 4 dimensions in the format (batch, channel, [spatial dims]), "
                 "where 'spatial dims' must be at least 2D (height, width). "
                 f"Received shape: {input.shape}."
             )
+
+        starting_class = 0 if self.include_background else 1
+
+        if input.shape[1] == 1:
+            if self.softmax:
+                raise ValueError(
+                    "softmax=True requires multiple channels for class probabilities, but received a single-channel input."
+                )
+            if not self.include_background:
+                warnings.warn(
+                    "Single-channel prediction detected. The `include_background=False` setting  will be ignored."
+                )
+                starting_class = 0
+
         if self.sigmoid:
             input = torch.sigmoid(input)
         elif self.softmax:
@@ -126,7 +133,6 @@ class DiceCLDiceLoss(_Loss):
             input = convert_to_one_vs_rest(input)
 
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
-        starting_class = 0 if self.include_background else 1
 
         dice = torch.tensor(0.0)
         if self.alpha < 1:
@@ -146,9 +152,9 @@ class DiceCLDiceLoss(_Loss):
 
         return dice_cl_dice_loss  # , {"dice": (1 - self.alpha) * dice, "cldice": self.alpha * cl_dice}
 
-    # TODO could possibly be reused for other topo losses that are by default combined wiht dice loss
+    # TODO maybe cleaner to have a true default dice to remove the reduce_axis and only apply it to the CLDice part
     def _compute_dice_loss(self, input: torch.Tensor, target: torch.Tensor, reduce_axis: List[int]) -> torch.Tensor:
-        """Function to compute the (weighted) Dice loss as part of the DiceCLDice loss.
+        """Function to compute the (weighted) Dice loss with default settings as part of the DiceCLDice loss.
 
         Args:
             input (torch.Tensor): The predicted segmentation map with shape (N, C, ...),
@@ -267,14 +273,27 @@ class BaseCLDiceLoss(_Loss):
 
         if target.shape != input.shape:
             raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
-        if input.shape[1] == 1 and not self.include_background:
-            warnings.warn("Single-channel prediction detected. Automatically setting `include_background=True`.")
-            self.include_background = True
-            # TODO forward should not modify state of the object!!!
-        if self.softmax and input.shape[1] == 1:
-            raise ValueError("softmax=True, but the number of channels for the prediction is 1.")
+        if len(input.shape) < 4:
+            raise ValueError(
+                "Invalid input tensor shape. Expected at least 4 dimensions in the format (batch, channel, [spatial dims]), "
+                "where 'spatial dims' must be at least 2D (height, width). "
+                f"Received shape: {input.shape}."
+            )
 
-        # We avoid applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
+        starting_class = 0 if self.include_background else 1
+
+        if input.shape[1] == 1:
+            if self.softmax:
+                raise ValueError(
+                    "softmax=True requires multiple channels for class probabilities, but received a single-channel input."
+                )
+            if not self.include_background:
+                warnings.warn(
+                    "Single-channel prediction detected. The `include_background=False` setting  will be ignored."
+                )
+                starting_class = 0
+
+        # Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
         # Such settings have to be controlled by the user when initializing the base loss function
         base_loss = torch.tensor(0.0)
         if self.base_loss is not None and self.alpha < 1:
@@ -288,7 +307,6 @@ class BaseCLDiceLoss(_Loss):
             input = convert_to_one_vs_rest(input)
 
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
-        starting_class = 0 if self.include_background else 1
 
         cl_dice = torch.tensor(0.0)
         if self.alpha > 0:

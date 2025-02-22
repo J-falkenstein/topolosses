@@ -82,28 +82,33 @@ class DiceLoss(_Loss):
         """
         if target.shape != input.shape:
             raise ValueError(f"Ground truth has different shape ({target.shape}) from input ({input.shape})")
-        if input.shape[1] == 1 and not self.include_background:
-            warnings.warn("single channel prediction, `include_background=False` ignored.")
-            self.include_background = True
-            # TODO forward should not modify state of the object!!!
-        if self.softmax and input.shape[1] == 1:
-            raise ValueError("single channel prediction and `softmax=True` is not supported.")
-        if self.weights is not None and len(self.weights.shape) != 1:
-            raise ValueError("weights must be a 1-dimensional tensor (vector).")
-        if self.weights is not None and len(self.weights) != (input.shape[1] - (0 if self.include_background else 1)):
-            raise ValueError(
-                f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes."
-                f"({'including' if self.include_background else 'excluding'} background) ({input.shape[1]})."
-            )
-
         if self.weights is not None:
+            if len(self.weights.shape) != 1:
+                raise ValueError("weights must be a 1-dimensional tensor (vector).")
+            if len(self.weights) != (input.shape[1] - (0 if self.include_background or input.shape[1] == 1 else 1)):
+                raise ValueError(
+                    f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes."
+                    f"({'including' if self.include_background else 'excluding'} background) ({input.shape[1]})."
+                )
             non_zero_weights_mask = self.weights != 0
             input = input[:, non_zero_weights_mask]
             target = target[:, non_zero_weights_mask]
 
-        if not self.include_background:
-            input = input[:, 1:]
-            target = target[:, 1:]
+        starting_class = 0 if self.include_background else 1
+
+        if input.shape[1] == 1:
+            if self.softmax:
+                raise ValueError(
+                    "softmax=True requires multiple channels for class probabilities, but received a single-channel input."
+                )
+            if not self.include_background:
+                warnings.warn(
+                    "Single-channel prediction detected. The `include_background=False` setting  will be ignored."
+                )
+                starting_class = 0
+
+        input = input[:, starting_class:]
+        target = target[:, starting_class:]
 
         if self.sigmoid:
             input = torch.sigmoid(input)
