@@ -1,5 +1,4 @@
-## TODO: adjust entire testing strategy make it more concise and easier to understand
-
+### test script from alex for topogroph
 
 # %%
 import numpy as np
@@ -76,7 +75,8 @@ def compare_loss_implementation(pred, gt, expected_result, ignore_background=Tru
     # plt.show()
 
     if expected_result >= 0:
-        gt_onehot = torch.nn.functional.one_hot(gt.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
+        gt_onehot = torch.nn.functional.one_hot(gt.to(torch.int64), num_classes)
+        gt_onehot = gt_onehot.permute(0, 3, 1, 2).float()
         pred_onehot = torch.nn.functional.one_hot(pred.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
     else:
         gt_onehot = gt
@@ -84,26 +84,26 @@ def compare_loss_implementation(pred, gt, expected_result, ignore_background=Tru
 
     cldice_new = DiceCLDiceLoss()
     cldice_orignal = cldice_loss_orignal.Multiclass_CLDice()
-    dicecldice_monai = SoftDiceclDiceLoss(smooth=1e-5)
-    cldice_monai = SoftclDiceLoss(smooth=1e-5)
-    cldice_new_base = BaseCLDiceLoss(base_loss=DiceLoss(include_background=False, batch=False), batch=False)
-    cldice_new_ignoreBackgroundDice = DiceCLDiceLoss(weights=torch.tensor([0, 3.0]), batch=False)
-    cldice_new_ignoreBackgroundDice2 = DiceCLDiceLoss(weights=torch.tensor([3.0, 3.0]), batch=True)
+    # dicecldice_monai = SoftDiceclDiceLoss(smooth=1e-5)
+    # cldice_monai = SoftclDiceLoss(smooth=1e-5)
+    # cldice_new_base = BaseCLDiceLoss(base_loss=DiceLoss(include_background=False, batch=False), batch=False)
+    # cldice_new_ignoreBackgroundDice = DiceCLDiceLoss(weights=torch.tensor([0, 3.0]), batch=False)
+    # cldice_new_ignoreBackgroundDice2 = DiceCLDiceLoss(weights=torch.tensor([3.0, 3.0]), batch=True)
 
     loss = cldice_new(pred_onehot, gt_onehot)
     loss_original = cldice_orignal(pred_onehot, gt_onehot)
-    loss_monai_dicecldice = dicecldice_monai(pred_onehot, gt_onehot)
-    loss_monai_cldice = cldice_monai(pred_onehot, gt_onehot)
-    loss_new_base = cldice_new_base(pred_onehot, gt_onehot)
-    loss_ignore_background_by_manual = cldice_new_ignoreBackgroundDice(pred_onehot, gt_onehot)
-    loss_ignore_background_by_manual2 = cldice_new_ignoreBackgroundDice2(pred_onehot, gt_onehot)
+    # loss_monai_dicecldice = dicecldice_monai(pred_onehot, gt_onehot)
+    # loss_monai_cldice = cldice_monai(pred_onehot, gt_onehot)
+    # loss_new_base = cldice_new_base(pred_onehot, gt_onehot)
+    # loss_ignore_background_by_manual = cldice_new_ignoreBackgroundDice(pred_onehot, gt_onehot)
+    # loss_ignore_background_by_manual2 = cldice_new_ignoreBackgroundDice2(pred_onehot, gt_onehot)
 
     print("Refactored implementation: ", loss)
     print("Original implementation: ", loss_original)
-    print("Monai dice cl dice: ", loss_monai_dicecldice)
-    print("Monai cl dice: ", loss_monai_cldice)
-    print("Base ignore bg cl dice: ", loss_new_base)
-    print("Ignore bg diceclddice (weights): ", loss_ignore_background_by_manual)
+    # print("Monai dice cl dice: ", loss_monai_dicecldice)
+    # print("Monai cl dice: ", loss_monai_cldice)
+    # print("Base ignore bg cl dice: ", loss_new_base)
+    # print("Ignore bg diceclddice (weights): ", loss_ignore_background_by_manual)
     print("--")
 
 
@@ -131,33 +131,8 @@ gt = torch.tensor(
     ]
 ).float()
 
-compare_loss_implementation(pred, gt, 3, ignore_background=True)
+# compare_loss_implementation(pred, gt, 3, ignore_background=True)
 
-pred = torch.tensor(
-    [
-        [
-            [0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 1.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0],
-        ]
-    ]
-).float()
-
-gt = torch.tensor(
-    [
-        [
-            [0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 1.0, 1.0, 0.0],
-            [0.0, 1.0, 0.0, 1.0, 0.0],
-            [0.0, 1.0, 1.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0],
-        ]
-    ]
-).float()
-
-compare_loss_implementation(pred, gt, 0, ignore_background=True)
 
 gt = torch.tensor(
     [
@@ -183,7 +158,7 @@ pred = torch.tensor(
     ]
 ).float()
 
-compare_loss_implementation(pred, gt, 0, ignore_background=True)
+##compare_loss_implementation(pred, gt, 0, ignore_background=True)
 
 gt = torch.tensor(
     [
@@ -211,7 +186,9 @@ pred = torch.tensor(
     ]
 ).float()
 
+print("now first solution")
 compare_loss_implementation(pred, gt, 1, ignore_background=True)
+print("now second solution")
 
 gt = (
     1
@@ -271,7 +248,7 @@ gt = torch.tensor(
     ]
 ).float()
 
-compare_loss_implementation(pred, gt, 0, ignore_background=True)
+# compare_loss_implementation(pred, gt, 0, ignore_background=True)
 
 pred = torch.tensor(
     [
@@ -297,7 +274,7 @@ gt = torch.tensor(
     ]
 ).float()
 
-compare_loss_implementation(pred, gt, 0, ignore_background=True)
+# compare_loss_implementation(pred, gt, 0, ignore_background=True)
 
 pred = torch.tensor(
     [
@@ -325,7 +302,7 @@ gt = torch.tensor(
     ]
 ).float()
 
-compare_loss_implementation(pred, gt, 0, ignore_background=True)
+##compare_loss_implementation(pred, gt, 0, ignore_background=True)
 
 pred = torch.tensor(
     [

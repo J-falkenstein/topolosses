@@ -9,18 +9,15 @@ import torch.nn.functional as F
 from ...utils import convert_to_one_vs_rest
 
 
-# TODO check that both classes have all the same adjustments. Some redundancy can lead to different behavioru where same behaviour is expected
-# OR merge the classes: have one flag for no base loss, and the base loss arugment, if that is non we do the standard dice loss as in DiceCLDiceLoss,
-# can inlcude one warning that the base loss is not used if it is provided but flag no base is true
-class DiceCLDiceLoss(_Loss):
-    """A loss function for segmentation tasks that combines a Dice and CLDice componenent.
+class CLDiceLoss(_Loss):
+    """A loss function for segmentation that combines a base loss and a CLDice component.
 
     The loss has been defined in:
         Shit et al. (2021) clDice -- A Novel Topology-Preserving Loss Function
         for Tubular Structure Segmentation. (https://arxiv.org/abs/2003.07311)
 
-    This class is for a straightforward use with a (weighted) Dice loss as the base loss.
-    For more advanced configurations of the base loss, use the `BaseCLDice` class, where you can provide an initialized base loss (e.g., cross-entropy).
+    This class allows flexibility in choosing a custom base loss function.
+    For a simpler implementation with a Dice base loss, use the `DiceCLDiceLoss` class.
     """
 
     def __init__(
@@ -32,34 +29,37 @@ class DiceCLDiceLoss(_Loss):
         softmax: bool = False,
         convert_to_one_vs_rest: bool = False,
         batch: bool = False,
+        use_base_component: bool = True,
         include_background: bool = False,
+        base_loss: Optional[_Loss] = None,
         weights: List[float] = None,
     ):
-        """Initializes the DiceCLDiceLoss object.
-
+        """
         Args:
             iter_ (int): Number of iterations for soft skeleton computation. Higher values refine
                 the skeleton but increase computation time. Defaults to 3.
-            alpha (float): Weighting factor for the CLDice and Dice components. Defaults to 0.5.
-            smooth (float): Smoothing factor to avoid division by zero in Dice and CLDice calculations.
-                Defaults to 1e-5.
-            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the loss.
+            smooth (float): Smoothing factor to avoid division by zero in CLDice calculations. Defaults to 1e-5.
+            alpha (float): Weighting factor for combining the CLDice and base loss components. Defaults to 0.5.
+            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
                 Defaults to `False`.
-            softmax (bool): If `True`, applies a softmax activation to the input before computing the loss.
+            softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
                 Defaults to `False`.
-            convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for
-                multi-class segmentation. Defaults to `False`.
-            batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division for both CLDice and Dice components.
-                Defaults to `False`, where the loss is computed independently for each item for the Dice and CLDice component calculation.
-            include_background (bool): If `True`, includes the background class in CLDice component. Defaults to `False`.
+            convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for multi-class
+                segmentation. Defaults to `False`.
+            batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
+                Defaults to `False`, where the loss is computed independently for each item for the CLDice component calculation.
+            include_background (bool): If `True`, includes the background class in CLDice computation. Defaults to `False`.
                 Background inclusion in the Dice component should be controlled using `weights` instead.
-            weights (Tensor, optional): Class-wise weights for the Dice component, allowing emphasis
+            use_base_component (bool): if false the loss only consists of the CLDice component. A forward call will return the full CLDice component.
+                base_loss, weights, and alpha will be ignored if this flag is set to false.
+            base_loss (_Loss, optional): The base loss function (e.g., cross-entropy) to be used alongside the CLDice loss.
+                Defaults to `None`, meaning only the CLDice loss will be used.
+            weights (Tensor, optional): Class-wise weights for the default Dice component, allowing emphasis
                 on specific classes or ignoring classes. Defaults to `None` (unweighted). Weights are **only
                 applied to the Dice component**, not the CLDice component.
 
         Raises:
-            ValueError: If more than one of `sigmoid`, `softmax`, or `convert_to_one_vs_rest` is set to `True`.
-
+            ValueError: If more than one of [sigmoid, softmax, convert_to_one_vs_rest] is set to True.
         """
 
         if sum([sigmoid, softmax, convert_to_one_vs_rest]) > 1:
@@ -68,7 +68,7 @@ class DiceCLDiceLoss(_Loss):
                 "You can only choose one of these options at a time or none if you already pass probabilites."
             )
 
-        super(DiceCLDiceLoss, self).__init__()
+        super(CLDiceLoss, self).__init__()
 
         self.iter_ = iter_
         self.smooth = smooth
@@ -78,11 +78,25 @@ class DiceCLDiceLoss(_Loss):
         self.convert_to_one_vs_rest = convert_to_one_vs_rest
         self.batch = batch
         self.include_background = include_background
+        self.use_base_component = use_base_component
+        self.base_loss = base_loss
         self.register_buffer("weights", weights)
         self.weights: Optional[Tensor]
 
+        if not self.use_base_component:
+            if base_loss is not None:
+                warnings.warn("base_loss is ignored beacuse use_base_component is set to false")
+            if weights is not None:
+                warnings.warn(
+                    "weights for the default dice component are ignored beacuse use_base_component is set to false"
+                )
+            if self.alpha != 1:
+                warnings.warn(
+                    "Alpha < 1 has no effect when no base component is used. The full ClDice loss will be returned."
+                )
+
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """Computes the CLDice loss and Dice loss for the given input and target.
+        """Computes the CLDice loss and base loss for the given input and target.
 
         Args:
             input (torch.Tensor): Predicted segmentation map of shape BC[spatial dimensions],
@@ -90,7 +104,7 @@ class DiceCLDiceLoss(_Loss):
             target (torch.Tensor): Ground truth segmentation map of shape BC[spatial dimensions]
 
         Returns:
-            tuple: A tuple containing the total DiceCLDice loss and a dictionary of individual loss components.
+            tuple: A tuple containing the total DiceCLDice loss and a dictionary of individual loss components. # TODO define the return type
 
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
@@ -100,16 +114,16 @@ class DiceCLDiceLoss(_Loss):
 
         if target.shape != input.shape:
             raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
-        if self.weights is not None and len(self.weights) != input.shape[1]:
-            # Weights shape is independent of inlcude_background because they apply only to the Dice component, while `include_background` affects only CLDice calculations.
-            raise ValueError(
-                f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]})."
-            )
         if len(input.shape) < 4:
             raise ValueError(
                 "Invalid input tensor shape. Expected at least 4 dimensions in the format (batch, channel, [spatial dims]), "
                 "where 'spatial dims' must be at least 2D (height, width). "
                 f"Received shape: {input.shape}."
+            )
+        if self.weights is not None and len(self.weights) != input.shape[1]:
+            # Weights shape is independent of inlcude_background because they apply only to the Dice component, while `include_background` affects only the CLDice component.
+            raise ValueError(
+                f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]})."
             )
 
         starting_class = 0 if self.include_background else 1
@@ -125,6 +139,12 @@ class DiceCLDiceLoss(_Loss):
                 )
                 starting_class = 0
 
+        # Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
+        # These settings have to be controlled by the user when initializing the base loss function
+        base_loss = torch.tensor(0.0)
+        if self.alpha < 1 and self.use_base_component and self.base_loss is not None:
+            base_loss = self.base_loss(input, target)
+
         if self.sigmoid:
             input = torch.sigmoid(input)
         elif self.softmax:
@@ -132,11 +152,10 @@ class DiceCLDiceLoss(_Loss):
         elif self.convert_to_one_vs_rest:
             input = convert_to_one_vs_rest(input)
 
-        reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
+        if self.alpha < 1 and self.use_base_component and self.base_loss is None:
+            base_loss = self._compute_dice_loss(input, target, reduce_axis)
 
-        dice = torch.tensor(0.0)
-        if self.alpha < 1:
-            dice = self._compute_dice_loss(input, target, reduce_axis)
+        reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 
         cl_dice = torch.tensor(0.0)
         if self.alpha > 0:
@@ -148,11 +167,12 @@ class DiceCLDiceLoss(_Loss):
                 reduce_axis,
             )
 
-        dice_cl_dice_loss = (1 - self.alpha) * dice + self.alpha * cl_dice
+        base_cl_dice_loss = (
+            cl_dice if not self.use_base_component else (1 - self.alpha) * base_loss + self.alpha * cl_dice
+        )
 
-        return dice_cl_dice_loss  # , {"dice": (1 - self.alpha) * dice, "cldice": self.alpha * cl_dice}
+        return base_cl_dice_loss  # , {"base": (1 - self.alpha) * base_loss, "cldice": self.alpha * cl_dice}
 
-    # TODO maybe cleaner to have a true default dice to remove the reduce_axis and only apply it to the CLDice part
     def _compute_dice_loss(self, input: torch.Tensor, target: torch.Tensor, reduce_axis: List[int]) -> torch.Tensor:
         """Function to compute the (weighted) Dice loss with default settings as part of the DiceCLDice loss.
 
@@ -188,139 +208,6 @@ class DiceCLDiceLoss(_Loss):
             dice = torch.mean(dice)
 
         return dice
-
-
-class BaseCLDiceLoss(_Loss):
-    """A loss function for segmentation that combines a base loss and a CLDice component.
-
-    The loss has been defined in:
-        Shit et al. (2021) clDice -- A Novel Topology-Preserving Loss Function
-        for Tubular Structure Segmentation. (https://arxiv.org/abs/2003.07311)
-
-    This class allows flexibility in choosing a custom base loss function.
-    For a simpler implementation with a Dice base loss, use the `DiceCLDiceLoss` class.
-    """
-
-    def __init__(
-        self,
-        iter_: int = 3,
-        alpha: float = 0.5,
-        smooth: float = 1e-5,
-        sigmoid: bool = False,
-        softmax: bool = False,
-        convert_to_one_vs_rest: bool = False,
-        batch: bool = False,
-        include_background: bool = False,
-        base_loss: Optional[_Loss] = None,
-    ):
-        """
-        Args:
-            iter_ (int): Number of iterations for soft skeleton computation. Higher values refine
-                the skeleton but increase computation time. Defaults to 3.
-            smooth (float): Smoothing factor to avoid division by zero in CLDice calculations. Defaults to 1e-5.
-            alpha (float): Weighting factor for combining the CLDice and base loss components. Defaults to 0.5.
-            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
-                Defaults to `False`.
-            softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
-                Defaults to `False`.
-            convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for multi-class
-                segmentation. Defaults to `False`.
-            batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
-                Defaults to `False`, where the loss is computed independently for each item for the CLDice component calculation.
-            include_background (bool): If `True`, includes the background class in CLDice computation. Defaults to `False`.
-                Background inclusion in the Dice component should be controlled using `weights` instead.
-            base_loss (_Loss, optional): The base loss function (e.g., cross-entropy) to be used alongside the CLDice loss.
-                Defaults to `None`, meaning only the CLDice loss will be used.
-
-        Raises:
-            ValueError: If more than one of [sigmoid, softmax, convert_to_one_vs_rest] is set to True.
-        """
-
-        if sum([sigmoid, softmax, convert_to_one_vs_rest]) > 1:
-            raise ValueError(
-                "At most one of [sigmoid, softmax, convert_to_one_vs_rest] can be set to True. "
-                "You can only choose one of these options at a time or none if you already pass probabilites."
-            )
-
-        super(BaseCLDiceLoss, self).__init__()
-
-        self.iter_ = iter_
-        self.smooth = smooth
-        self.alpha = alpha
-        self.sigmoid = sigmoid
-        self.softmax = softmax
-        self.convert_to_one_vs_rest = convert_to_one_vs_rest
-        self.batch = batch
-        self.include_background = include_background
-        self.base_loss = base_loss
-
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """Computes the CLDice loss and base loss for the given input and target.
-
-        Args:
-            input (torch.Tensor): Predicted segmentation map of shape BC[spatial dimensions],
-                where C is the number of classes, and [spatial dimensions] represent height, width, and optionally depth.
-            target (torch.Tensor): Ground truth segmentation map of shape BC[spatial dimensions]
-
-        Returns:
-            tuple: A tuple containing the total DiceCLDice loss and a dictionary of individual loss components. # TODO define the return type
-
-        Raises:
-            ValueError: If the shape of the ground truth is different from the input shape.
-            ValueError: If softmax=True and the number of channels for the prediction is 1.
-
-        """
-
-        if target.shape != input.shape:
-            raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
-        if len(input.shape) < 4:
-            raise ValueError(
-                "Invalid input tensor shape. Expected at least 4 dimensions in the format (batch, channel, [spatial dims]), "
-                "where 'spatial dims' must be at least 2D (height, width). "
-                f"Received shape: {input.shape}."
-            )
-
-        starting_class = 0 if self.include_background else 1
-
-        if input.shape[1] == 1:
-            if self.softmax:
-                raise ValueError(
-                    "softmax=True requires multiple channels for class probabilities, but received a single-channel input."
-                )
-            if not self.include_background:
-                warnings.warn(
-                    "Single-channel prediction detected. The `include_background=False` setting  will be ignored."
-                )
-                starting_class = 0
-
-        # Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
-        # Such settings have to be controlled by the user when initializing the base loss function
-        base_loss = torch.tensor(0.0)
-        if self.base_loss is not None and self.alpha < 1:
-            base_loss = self.base_loss(input, target)
-
-        if self.sigmoid:
-            input = torch.sigmoid(input)
-        elif self.softmax:
-            input = torch.softmax(input, 1)
-        elif self.convert_to_one_vs_rest:
-            input = convert_to_one_vs_rest(input)
-
-        reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
-
-        cl_dice = torch.tensor(0.0)
-        if self.alpha > 0:
-            cl_dice = compute_cldice_loss(
-                input[:, starting_class:].float(),
-                target[:, starting_class:].float(),
-                self.smooth,
-                self.iter_,
-                reduce_axis,
-            )
-
-        base_cl_dice_loss = (1 - self.alpha) * base_loss + self.alpha * cl_dice
-
-        return base_cl_dice_loss  # , {"base": (1 - self.alpha) * base_loss, "cldice": self.alpha * cl_dice}
 
 
 def compute_cldice_loss(
