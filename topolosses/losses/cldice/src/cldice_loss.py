@@ -22,12 +22,12 @@ class CLDiceLoss(_Loss):
     def __init__(
         self,
         iter_: int = 3,
-        alpha: float = 0.5,
         smooth: float = 1e-5,
-        sigmoid: bool = False,
-        softmax: bool = False,
         batch: bool = False,
         include_background: bool = False,
+        alpha: float = 0.5,
+        sigmoid: bool = False,
+        softmax: bool = False,
         use_base_loss: bool = True,
         base_loss: Optional[_Loss] = None,
     ) -> None:
@@ -36,15 +36,15 @@ class CLDiceLoss(_Loss):
             iter_ (int): Number of iterations for soft skeleton computation. Higher values refine
                 the skeleton but increase computation time. Defaults to 3.
             smooth (float): Smoothing factor to avoid division by zero in CLDice and the default base dice calculations. Defaults to 1e-5.
+            batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
+                Defaults to `False`, where the loss is computed independently for each item for the CLDice and default base dice component calculation.
+            include_background (bool): If `True`, includes the background class in CLDice computation. Defaults to `False`.
             alpha (float): Weighting factor for combining the CLDice component (i.e.: base_loss + alpha*cldice_loss).
                 Defaults to 0.5.
             sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice and the default dice component.
                 Sigmoid is not applied before passing it to a custom base loss function. Defaults to `False`.
             softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
                 Softmax is not applied before passing it to a custom base loss function. Defaults to `False`.
-            batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
-                Defaults to `False`, where the loss is computed independently for each item for the CLDice and default base dice component calculation.
-            include_background (bool): If `True`, includes the background class in CLDice computation. Defaults to `False`.
             use_base_component (bool): if false the loss only consists of the CLDice component. A forward call will return the full CLDice component.
                 base_loss and alpha will be ignored if this flag is set to false.
             base_loss (_Loss, optional): The base loss function to be used alongside the CLDice loss.
@@ -64,11 +64,11 @@ class CLDiceLoss(_Loss):
 
         self.iter_ = iter_
         self.smooth = smooth
+        self.batch = batch
+        self.include_background = include_background
         self.alpha = alpha
         self.sigmoid = sigmoid
         self.softmax = softmax
-        self.batch = batch
-        self.include_background = include_background
         self.use_base_component = use_base_loss
         self.base_loss = base_loss
 
@@ -132,8 +132,6 @@ class CLDiceLoss(_Loss):
 
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 
-        # TODO think about it: since batch and reduce axis might not bee needed in other components we could think of treating the default dice score always as true default
-        # and dont have arguments for it also in CLdiceLoss
         if self.alpha < 1 and self.use_base_component and self.base_loss is None:
             base_loss = compute_default_dice_loss(
                 input,

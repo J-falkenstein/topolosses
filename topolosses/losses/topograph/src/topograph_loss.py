@@ -527,32 +527,23 @@ class TopographLoss(_Loss):
 
     def __init__(
         self,
-        softmax: bool = False,
-        sigmoid: bool = False,
-        alpha: float = 0.5,
         num_processes=1,
-        include_background: bool = True,
         use_c: bool = True,
         sphere: bool = False,
         eight_connectivity: bool = True,
         aggregation=AggregationType.MEAN,
         thres_distr=ThresholdDistribution.NONE,
         thres_var: float = 0.0,
+        include_background: bool = True,
+        alpha: float = 0.5,
+        softmax: bool = False,
+        sigmoid: bool = False,
         use_base_loss: bool = True,
         base_loss: Optional[_Loss] = None,
     ) -> None:
         """
         Args:
-            softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
-                This is useful for multi-class segmentation tasks. Defaults to `False`.
-            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
-                Typically used for binary segmentation. Defaults to `False`.
-            alpha (float): Weighting factor for combining the topograph loss and base loss components. Defaults to 0.5.
             num_processes (int): TODO
-            alpha (float): Weighting factor for combining the CLDice component (i.e.: base_loss + alpha*cldice_loss).
-                Defaults to 0.5.
-            include_background (bool): If `True`, includes the background class in the topograph computation.
-                Background inclusion in the base loss component should be controlled independently.
             use_c (bool): TODO
             sphere (bool): TODO
             eight_connectivity (bool):
@@ -562,6 +553,13 @@ class TopographLoss(_Loss):
                 Defaults to `ThresholdDistribution.NONE`. Possible values are uniform and gaussian
             thres_var (float): TODO
                 Defaults to 0.0.
+            include_background (bool): If `True`, includes the background class in the topograph computation.
+                Background inclusion in the base loss component should be controlled independently.
+            alpha (float): Weighting factor for combining the topograph loss and base loss components. Defaults to 0.5.
+            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
+                Typically used for binary segmentation. Defaults to `False`.
+            softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
+                This is useful for multi-class segmentation tasks. Defaults to `False`.
             use_base_component (bool): if false the loss only consists of the Topograph component.
                 A forward call will return the full Topograph component.
                 base_loss, weights, and alpha will be ignored if this flag is set to false.
@@ -579,19 +577,19 @@ class TopographLoss(_Loss):
 
         super(TopographLoss, self).__init__()
 
-        self.softmax = softmax
-        self.sigmoid = sigmoid
-        self.alpha = alpha
         self.num_processes = num_processes
-        self.include_background = include_background
+        if self.num_processes > 1:
+            self.pool = mp.Pool(num_processes)
         self.use_c = use_c
         self.sphere = sphere
         self.eight_connectivity = eight_connectivity
         self.thres_distr = thres_distr
         self.thres_var = thres_var
         self.aggregation = aggregation
-        if self.num_processes > 1:
-            self.pool = mp.Pool(num_processes)
+        self.include_background = include_background
+        self.alpha = alpha
+        self.softmax = softmax
+        self.sigmoid = sigmoid
         self.use_base_component = use_base_loss
         self.base_loss = base_loss
 
@@ -912,29 +910,3 @@ class TopographLoss(_Loss):
         g_loss /= input.shape[0] * (num_classes - skip_index)
 
         return g_loss
-
-
-class DiceTopographLoss(_Loss):
-
-    def forward(
-        self,
-        prediction: torch.Tensor,
-        target: torch.Tensor,
-        alpha: float = 0.5,
-    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        # Compute multiclass BM losses
-        # TODO alpah rausnhemen und nur ein intitial alpha anbieten
-        losses = {}
-        if alpha > 0:
-            topograph_loss = self.TopographLoss(prediction, target)
-        else:
-            topograph_loss = torch.zeros(1, device=prediction.device)
-
-        # Multiclass Dice loss
-        dice_loss, dic = self.DiceLoss(prediction, target)
-
-        losses["dice"] = dic["dice"]
-        losses["cldice"] = dic["cldice"]
-        losses["topograph_loss"] = alpha * topograph_loss
-
-        return dice_loss + alpha * topograph_loss, losses
