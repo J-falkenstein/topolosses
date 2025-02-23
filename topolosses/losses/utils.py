@@ -11,8 +11,6 @@ def compute_default_dice_loss(
     target: torch.Tensor,
     reduce_axis: Optional[List[int]] = None,
     smooth: float = 1e-5,
-    weights: Optional[Tensor] = None,
-    batch: bool = False,
 ) -> torch.Tensor:
     """Function to compute the (weighted) Dice loss with default settings for the default base loss
 
@@ -29,10 +27,6 @@ def compute_default_dice_loss(
     """
     if reduce_axis == None:
         reduce_axis = list(range(2, len(input.shape)))
-    if weights is not None:
-        non_zero_weights_mask = weights != 0
-        input = input[:, non_zero_weights_mask]
-        target = target[:, non_zero_weights_mask]
 
     intersection = torch.sum(target * input, dim=reduce_axis)
     ground_o = torch.sum(target, dim=reduce_axis)
@@ -40,13 +34,7 @@ def compute_default_dice_loss(
     denominator = ground_o + pred_o
     dice = 1.0 - (2.0 * intersection + smooth) / (denominator + smooth)
 
-    # Weights are normalized to keep scales consistent
-    # This is different to the monai implementation of weighted dice loss
-    if weights is not None:
-        weighted_dice = dice * (weights[non_zero_weights_mask] / weights[non_zero_weights_mask].sum())
-        dice = torch.mean(weighted_dice.sum(dim=1)) if not batch else weighted_dice.sum()
-    else:
-        dice = torch.mean(dice)
+    dice = torch.mean(dice)
 
     return dice
 

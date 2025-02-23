@@ -43,7 +43,7 @@ TEST_CASES = [
         0.3999987,
     ],
     [  # shape: (1, 3, 2, 2) default base loss (weighted dice),
-        {"softmax": True, "weights": torch.tensor([5, 5, 5])},
+        {"softmax": True},
         {
             "input": torch.tensor(
                 [
@@ -157,14 +157,6 @@ class TestDiceCLDiceLoss(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, ""):
             loss = CLDiceLoss(softmax=True)
             loss.forward(chn_input, chn_target)
-        with self.assertRaisesRegex(ValueError, ""):
-            loss = CLDiceLoss(weights=torch.tensor([0.5, 0.5]))
-            loss.forward(chn_input, chn_target)
-        chn_input = torch.ones((1, 2, 3, 3))
-        chn_target = torch.ones((1, 2, 3, 3))
-        with self.assertRaisesRegex(ValueError, ""):
-            loss = CLDiceLoss(include_background=True, weights=torch.tensor([0.5]))
-            loss.forward(chn_input, chn_target)
         chn_input = torch.ones((1, 1, 3))
         chn_target = torch.ones((1, 1, 3))
         with self.assertRaisesRegex(ValueError, ""):
@@ -181,10 +173,6 @@ class TestDiceCLDiceLoss(unittest.TestCase):
             loss = CLDiceLoss(use_base_loss=False, alpha=0.5)
         with self.assertWarns(Warning):
             loss = CLDiceLoss(use_base_loss=False, base_loss=DiceLoss())
-        with self.assertWarns(Warning):
-            loss = CLDiceLoss(use_base_loss=False, weights=torch.tensor([0.5, 0.5]))
-        with self.assertWarns(Warning):
-            loss = CLDiceLoss(base_loss=DiceLoss(), weights=torch.tensor([0.5, 0.5, 0.5]))
 
     # from test_utils import test_script_save
     # def test_script(self):

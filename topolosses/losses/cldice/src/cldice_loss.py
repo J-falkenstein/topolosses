@@ -30,13 +30,12 @@ class CLDiceLoss(_Loss):
         include_background: bool = False,
         use_base_loss: bool = True,
         base_loss: Optional[_Loss] = None,
-        weights: Optional[Tensor] = None,
     ) -> None:
         """
         Args:
             iter_ (int): Number of iterations for soft skeleton computation. Higher values refine
                 the skeleton but increase computation time. Defaults to 3.
-            smooth (float): Smoothing factor to avoid division by zero in CLDice and the defaul base dice calculations. Defaults to 1e-5.
+            smooth (float): Smoothing factor to avoid division by zero in CLDice and the default base dice calculations. Defaults to 1e-5.
             alpha (float): Weighting factor for combining the CLDice component (i.e.: base_loss + alpha*cldice_loss).
                 Defaults to 0.5.
             sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice and the default dice component.
@@ -46,14 +45,10 @@ class CLDiceLoss(_Loss):
             batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
                 Defaults to `False`, where the loss is computed independently for each item for the CLDice and default base dice component calculation.
             include_background (bool): If `True`, includes the background class in CLDice computation. Defaults to `False`.
-                Background inclusion in the Dice component should be controlled using `weights` instead.
             use_base_component (bool): if false the loss only consists of the CLDice component. A forward call will return the full CLDice component.
-                base_loss, weights, and alpha will be ignored if this flag is set to false.
+                base_loss and alpha will be ignored if this flag is set to false.
             base_loss (_Loss, optional): The base loss function to be used alongside the CLDice loss.
                 Defaults to `None`, meaning a Dice component with default parameters will be used.
-            weights (Tensor, optional): Class-wise weights for the default Dice component, allowing emphasis
-                on specific classes or ignoring classes. Defaults to `None` (unweighted). Weights are **only
-                applied to the Dice component**, not the CLDice component.
 
         Raises:
             ValueError: If more than one of [sigmoid, softmax] is set to True.
@@ -76,26 +71,14 @@ class CLDiceLoss(_Loss):
         self.include_background = include_background
         self.use_base_component = use_base_loss
         self.base_loss = base_loss
-        # TODO could think about removing the weights, then the default is just the unweighted dice
-        self.register_buffer("weights", weights)
-        self.weights: Optional[Tensor]
 
         if not self.use_base_component:
             if base_loss is not None:
                 warnings.warn("base_loss is ignored beacuse use_base_component is set to false")
-            if weights is not None:
-                warnings.warn(
-                    "weights for the default dice component are ignored beacuse use_base_component is set to false"
-                )
             if self.alpha != 1:
                 warnings.warn(
                     "Alpha < 1 has no effect when no base component is used. The full ClDice loss will be returned."
                 )
-        if weights is not None and base_loss is not None:
-            warnings.warn(
-                "If a custom base loss is used, weights will be ignored."
-                "Weights are only applied to the default Dice component if no base loss is provided."
-            )
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Computes the CLDice loss and base loss for the given input and target.
@@ -121,11 +104,6 @@ class CLDiceLoss(_Loss):
                 "Invalid input tensor shape. Expected at least 4 dimensions in the format (batch, channel, [spatial dims]), "
                 "where 'spatial dims' must be at least 2D (height, width). "
                 f"Received shape: {input.shape}."
-            )
-        if self.weights is not None and len(self.weights) != input.shape[1]:
-            # Weights shape is independent of inlcude_background because they apply only to the Dice component, while `include_background` affects only the CLDice component.
-            raise ValueError(
-                f"Wrong shape of weight vector: Number of class weights ({len(self.weights)}) must match the number of classes ({input.shape[1]})."
             )
 
         starting_class = 0 if self.include_background else 1
@@ -162,8 +140,6 @@ class CLDiceLoss(_Loss):
                 target,
                 reduce_axis,
                 self.smooth,
-                self.weights,
-                self.batch,
             )
 
         cl_dice = torch.tensor(0.0)
