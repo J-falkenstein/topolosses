@@ -5,6 +5,7 @@ import torch
 from torch import Tensor
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
+from ...utils import compute_default_dice_loss
 
 
 class CLDiceLoss(_Loss):
@@ -14,7 +15,7 @@ class CLDiceLoss(_Loss):
         Shit et al. (2021) clDice -- A Novel Topology-Preserving Loss Function
         for Tubular Structure Segmentation. (https://arxiv.org/abs/2003.07311)
 
-    By default the cl dice component is combined with a dice loss.
+    By default the cl dice component is combined with a (weighted) default dice loss.
     For more flexibility a custom base loss function can be passed.
     """
 
@@ -35,20 +36,21 @@ class CLDiceLoss(_Loss):
         Args:
             iter_ (int): Number of iterations for soft skeleton computation. Higher values refine
                 the skeleton but increase computation time. Defaults to 3.
-            smooth (float): Smoothing factor to avoid division by zero in CLDice calculations. Defaults to 1e-5.
-            alpha (float): Weighting factor for combining the CLDice and base loss components. Defaults to 0.5.
-            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
-                Defaults to `False`.
+            smooth (float): Smoothing factor to avoid division by zero in CLDice and the defaul base dice calculations. Defaults to 1e-5.
+            alpha (float): Weighting factor for combining the CLDice component (i.e.: base_loss + alpha*cldice_loss).
+                Defaults to 0.5.
+            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice and the default dice component.
+                Sigmoid is not applied before passing it to a custom base loss function. Defaults to `False`.
             softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
-                Defaults to `False`.
+                Softmax is not applied before passing it to a custom base loss function. Defaults to `False`.
             batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
-                Defaults to `False`, where the loss is computed independently for each item for the CLDice component calculation.
+                Defaults to `False`, where the loss is computed independently for each item for the CLDice and default base dice component calculation.
             include_background (bool): If `True`, includes the background class in CLDice computation. Defaults to `False`.
                 Background inclusion in the Dice component should be controlled using `weights` instead.
             use_base_component (bool): if false the loss only consists of the CLDice component. A forward call will return the full CLDice component.
                 base_loss, weights, and alpha will be ignored if this flag is set to false.
-            base_loss (_Loss, optional): The base loss function (e.g., cross-entropy) to be used alongside the CLDice loss.
-                Defaults to `None`, meaning only the CLDice loss will be used.
+            base_loss (_Loss, optional): The base loss function to be used alongside the CLDice loss.
+                Defaults to `None`, meaning a Dice component with default parameters will be used.
             weights (Tensor, optional): Class-wise weights for the default Dice component, allowing emphasis
                 on specific classes or ignoring classes. Defaults to `None` (unweighted). Weights are **only
                 applied to the Dice component**, not the CLDice component.
@@ -152,8 +154,17 @@ class CLDiceLoss(_Loss):
 
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 
+        # TODO think about it: since batch and reduce axis might not bee needed in other components we could think of treating the default dice score always as true default
+        # and dont have arguments for it also in CLdiceLoss
         if self.alpha < 1 and self.use_base_component and self.base_loss is None:
-            base_loss = self._compute_dice_loss(input, target, reduce_axis)
+            base_loss = compute_default_dice_loss(
+                input,
+                target,
+                reduce_axis,
+                self.smooth,
+                self.weights,
+                self.batch,
+            )
 
         cl_dice = torch.tensor(0.0)
         if self.alpha > 0:
@@ -165,47 +176,12 @@ class CLDiceLoss(_Loss):
                 reduce_axis,
             )
 
+        # TODO do not multiple base loss by 1-alpha, this has an effect on the current test cases
         base_cl_dice_loss = (
             cl_dice if not self.use_base_component else (1 - self.alpha) * base_loss + self.alpha * cl_dice
         )
 
         return base_cl_dice_loss  # , {"base": (1 - self.alpha) * base_loss, "cldice": self.alpha * cl_dice}
-
-    def _compute_dice_loss(self, input: torch.Tensor, target: torch.Tensor, reduce_axis: List[int]) -> torch.Tensor:
-        """Function to compute the (weighted) Dice loss with default settings as part of the DiceCLDice loss.
-
-        Args:
-            input (torch.Tensor): The predicted segmentation map with shape (N, C, ...),
-                                where N is batch size, C is the number of classes.
-            target (torch.Tensor): The ground truth segmentation map with the same shape as `input`.
-            reduce_axis (List[int]): The axes along which to reduce the loss computation.
-                                To decide whether to sum the intersection and union areas over the batch dimension before the dividing.
-
-        Returns:
-            torch.Tensor: The Dice loss as a scalar
-
-        """
-
-        if self.weights is not None:
-            non_zero_weights_mask = self.weights != 0
-            input = input[:, non_zero_weights_mask]
-            target = target[:, non_zero_weights_mask]
-
-        intersection = torch.sum(target * input, dim=reduce_axis)
-        ground_o = torch.sum(target, dim=reduce_axis)
-        pred_o = torch.sum(input, dim=reduce_axis)
-        denominator = ground_o + pred_o
-        dice = 1.0 - (2.0 * intersection + self.smooth) / (denominator + self.smooth)
-
-        # Weights are normalized to keep scales consistent
-        # This is different to the monai implementation of weighted dice loss
-        if self.weights is not None:
-            weighted_dice = dice * (self.weights[non_zero_weights_mask] / self.weights[non_zero_weights_mask].sum())
-            dice = torch.mean(weighted_dice.sum(dim=1)) if not self.batch else weighted_dice.sum()
-        else:
-            dice = torch.mean(dice)
-
-        return dice
 
 
 # TODO think about putting in class to not pass all the arguments (bc in topograph it makes sense there might be too many arguments to pass for it to be beautiful)
@@ -225,7 +201,7 @@ def compute_cldice_loss(
         smooth (float): Smoothing factor to avoid division by zero.
         iter_ (int): Number of iterations for soft skeleton computation.
         reduce_axis (List[int]): The axes along which to reduce the loss computation.
-                            To decide whether to sum the intersection and union areas over the batch dimension before the dividing.
+                            It decides whether to sum the intersection and union areas over the batch dimension before the dividing.
 
     Returns:
         torch.Tensor: The CLDice loss as a scalar tensor.

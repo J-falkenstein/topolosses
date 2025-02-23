@@ -97,9 +97,7 @@ TEST_CASES = [
                     ]
                 ).to(torch.int64),
                 2,
-            )
-            .permute(0, 3, 1, 2)
-            .float(),
+            ).permute(0, 3, 1, 2),
             "target": torch.nn.functional.one_hot(
                 1
                 - torch.tensor(
@@ -115,9 +113,7 @@ TEST_CASES = [
                     ]
                 ).to(torch.int64),
                 2,
-            )
-            .permute(0, 3, 1, 2)
-            .float(),
+            ).permute(0, 3, 1, 2),
         },
         0.19011,
     ],

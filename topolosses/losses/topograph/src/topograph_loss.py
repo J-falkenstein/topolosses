@@ -6,35 +6,28 @@ import torch
 from torch import Tensor
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
-from functools import partial
-import random
-import time
 import networkx as nx
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
-import os
 import torch.multiprocessing as mp
 
-# set launch blocking
-# os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 
 # C++ implementation
 import Topograph
 
 from losses.utils import (
-    DiceType,
     AggregationType,
     ThresholdDistribution,
     fill_adj_matr,
     new_compute_diag_diffs,
     new_compute_diffs,
 )
-from .dice_losses import Multiclass_CLDice
 from scipy.ndimage import label
 from scipy.cluster.hierarchy import DisjointSet
 import timeit
+from ...utils import compute_default_dice_loss
 
 
 def reverse_pairing(pairing: int) -> tuple[int, int]:
@@ -522,58 +515,73 @@ def find_saddle_points_in_8_neighborhood(tensor):
 
 
 class TopographLoss(_Loss):
-    """TopographLoss is a loss function designed to ensure strict topology preservation during image segmentation tasks."""
+    """TopographLoss is a loss function designed to ensure strict topology preservation during image segmentation tasks.
+
+    The loss has been defined:
+        Lux et al (2024) Topograph: An efficient Graph-Based Framework for
+        Strictly Topology Preserving Image Segmentation (https://arxiv.org/pdf/2411.03228)
+
+    By default the topograph component is combined with a dice loss comnponent.
+    For more flexibility a custom base loss function can be passed.
+    """
 
     def __init__(
         self,
         softmax: bool = False,
         sigmoid: bool = False,
+        alpha: float = 0.5,
         num_processes=1,
         include_background: bool = True,
-        use_c=True,
-        sphere=False,
-        eight_connectivity=True,
+        use_c: bool = True,
+        sphere: bool = False,
+        eight_connectivity: bool = True,
         aggregation=AggregationType.MEAN,
         thres_distr=ThresholdDistribution.NONE,
-        thres_var=0.0,
+        thres_var: float = 0.0,
         use_base_loss: bool = True,
         base_loss: Optional[_Loss] = None,
-        weights: Optional[Tensor] = None,
     ) -> None:
         """
         Args:
             softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
-                    This is useful for multi-class segmentation tasks. Defaults to `False`.
+                This is useful for multi-class segmentation tasks. Defaults to `False`.
             sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
-                    Typically used for binary segmentation. Defaults to `False`.
-            num_processes (int): Number of processes to use during the computation of the soft skeleton.
-                    A higher value refines the skeleton but increases computation time. Defaults to 1.
-            include_background (bool): If `True`, includes the background class in the CLDice computation.
-                    Background inclusion in the Dice component should be controlled using `weights` instead.
-                    Defaults to `True`.
-            use_c (bool): If `True`, uses the component graph-based approach for topology preservation. Defaults to `True`.
-            sphere (bool): If `True`, applies spherical connectivity in the graph construction for topological preservation.
-                    Defaults to `False`.
-            eight_connectivity (bool): If `True`, uses eight-connectivity for the component graph construction.
-                    Defaults to `True`.
+                Typically used for binary segmentation. Defaults to `False`.
+            alpha (float): Weighting factor for combining the topograph loss and base loss components. Defaults to 0.5.
+            num_processes (int): TODO
+            alpha (float): Weighting factor for combining the CLDice component (i.e.: base_loss + alpha*cldice_loss).
+                Defaults to 0.5.
+            include_background (bool): If `True`, includes the background class in the topograph computation.
+                Background inclusion in the base loss component should be controlled independently.
+            use_c (bool): TODO
+            sphere (bool): TODO
+            eight_connectivity (bool):
             aggregation (AggregationType): Specifies the aggregation method for loss calculation across the batch.
-                    Possible values are `MEAN` or `SUM`. Defaults to `AggregationType.MEAN`.
-            thres_distr (ThresholdDistribution): Specifies the threshold distribution method for topological preservation.
-                    Defaults to `ThresholdDistribution.NONE`.
-            thres_var (float): The variance threshold for topological consistency enforcement. Defaults to 0.0.
-            use_base_loss (bool): If `True`, includes an additional base loss (e.g., cross-entropy) alongside CLDice loss.
-                    If set to `False`, only the CLDice component is used. Defaults to `True`.
-            base_loss (Optional[_Loss]): The base loss function (e.g., cross-entropy) to be used alongside the CLDice loss.
-                    Defaults to `None` which means a Dice loss is used. Ignored if `use_base_loss` is `False`.
-            weights (Optional[Tensor]): Class-wise weights for the default Dice component, allowing emphasis on specific classes
-                    or ignoring others. Only applied to the default base dice loss. Defaults to `None` (unweighted).
+                Possible values are mean, sum, max, min, ce, rms, and leg
+            thres_distr (ThresholdDistribution): TODO
+                Defaults to `ThresholdDistribution.NONE`. Possible values are uniform and gaussian
+            thres_var (float): TODO
+                Defaults to 0.0.
+            use_base_component (bool): if false the loss only consists of the Topograph component.
+                A forward call will return the full Topograph component.
+                base_loss, weights, and alpha will be ignored if this flag is set to false.
+            base_loss (_Loss, optional): The base loss function to be used alongside the Topograph loss.
+                Defaults to `None`, meaning a Dice component with default parameters will be used.  .
 
         Raises:
-            TODO
+            ValueError: If more than one of [sigmoid, softmax] is set to True.
         """
+        if sum([sigmoid, softmax]) > 1:
+            raise ValueError(
+                "At most one of [sigmoid, softmax] can be set to True. "
+                "You can only choose one of these options at a time or none if you already pass probabilites."
+            )
+
         super(TopographLoss, self).__init__()
+
         self.softmax = softmax
         self.sigmoid = sigmoid
+        self.alpha = alpha
         self.num_processes = num_processes
         self.include_background = include_background
         self.use_c = use_c
@@ -586,12 +594,17 @@ class TopographLoss(_Loss):
             self.pool = mp.Pool(num_processes)
         self.use_base_component = use_base_loss
         self.base_loss = base_loss
-        self.register_buffer("weights", weights)
-        self.weights: Optional[Tensor]
+
+        if not self.use_base_component:
+            if base_loss is not None:
+                warnings.warn("base_loss is ignored beacuse use_base_component is set to false")
+            if self.alpha != 1:
+                warnings.warn(
+                    "Alpha < 1 has no effect when no base component is used. The full ClDice loss will be returned."
+                )
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        """
-        Calculates the forward pass of the topological loss.
+        """Calculates the forward pass of the topograph loss.
 
         Args:
             input (Tensor): Input tensor of shape (batch_size, num_classes, H, W).
@@ -600,20 +613,48 @@ class TopographLoss(_Loss):
         Returns:
             Tensor: The calculated topological loss.
 
+        Raises:
+            ValueError: If the shape of the ground truth is different from the input shape.
+            ValueError: If softmax=True and the number of channels for the prediction is 1.
+
         """
-        target = target.float()
+        if target.shape != input.shape:
+            raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
+
+        skip_index = 0 if self.include_background else 1
         num_classes = input.shape[1]
+
+        if num_classes == 1:
+            if self.softmax:
+                raise ValueError(
+                    "softmax=True requires multiple channels for class probabilities, but received a single-channel input."
+                )
+            if not self.include_background:
+                warnings.warn(
+                    "Single-channel prediction detected. The `include_background=False` setting  will be ignored."
+                )
+                skip_index = 0
+
+        # Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
+        # These settings have to be controlled by the user when initializing the base loss function
+        base_loss = torch.tensor(0.0)
+        if self.alpha < 1 and self.use_base_component and self.base_loss is not None:
+            base_loss = self.base_loss(input, target)
 
         if self.sigmoid:
             input = torch.sigmoid(input)
         elif self.softmax:
             input = torch.softmax(input, 1)
 
-        num_classes = input.shape[1]
+        if self.alpha < 1 and self.use_base_component and self.base_loss is None:
+            base_loss = compute_default_dice_loss(input, target)
 
-        single_calc_inputs = []
-        relabel_masks = []
-        skip_index = 0 if self.include_background else 1
+        topograph_loss = torch.tensor(0.0)
+        if self.alpha > 0:
+            topograph_loss = self.compute_topopgraph_loss(input.float(), target.float(), skip_index, num_classes)
+        return base_loss + self.alpha * topograph_loss
+
+    def compute_topopgraph_loss(self, input, target, skip_index, num_classes):
 
         if self.thres_distr != ThresholdDistribution.NONE:
             # Get the random probability to add to a class
@@ -627,7 +668,6 @@ class TopographLoss(_Loss):
                         size=[input.shape[0], 1, 1], requires_grad=False, device=input.device
                     ) * (self.thres_var / (num_classes - 1))
 
-            # Detach the original input from the computation graph
             input_detached = input.detach().clone()
 
             # get class that is being reinforced
@@ -653,6 +693,7 @@ class TopographLoss(_Loss):
             argmax_preds = F.pad(argmax_preds, (1, 1, 1, 1), value=0)
             argmax_gts = F.pad(argmax_gts, (1, 1, 1, 1), value=0)
 
+        single_calc_inputs = []
         # get critical nodes for each class
         for class_index in range(skip_index, num_classes):
             # binarize image
@@ -867,15 +908,6 @@ class TopographLoss(_Loss):
                     g_loss += lo * num_elements[i]
                 if sum(num_elements) != 0:
                     g_loss *= len(nominator_means) / sum(num_elements)
-                # nominator_means = torch.tensor(nominator_means, device=input.device)
-                # num_elements = torch.tensor(num_elements, device=input.device, dtype=torch.float32)
-                # print(nominator_means)
-                # print(num_elements)
-                # print(f"Found or not dict: {found_or_not_dict}")
-                # g_loss += (nominator_means * num_elements).sum()*len(nominator_means) / num_elements.sum()
-                # g_loss += (nominator_means * num_elements).sum()* len(nominator_means) / num_elements.sum()
-
-                # g_loss += (nominator_means * num_elements).sum()* len(region_indices) / num_elements.sum()
         # normalize by number of classes and batch size
         g_loss /= input.shape[0] * (num_classes - skip_index)
 
