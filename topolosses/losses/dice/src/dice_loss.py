@@ -5,8 +5,6 @@ import torch
 from torch import Tensor
 from torch.nn.modules.loss import _Loss
 
-from ...utils import convert_to_one_vs_rest
-
 
 class DiceLoss(_Loss):
     """Computes the Dice loss between two tensors."""
@@ -18,11 +16,10 @@ class DiceLoss(_Loss):
         smooth=1e-5,
         sigmoid=False,
         softmax=False,
-        convert_to_one_vs_rest=False,
         batch=False,
         include_background=True,
         weights: Optional[Tensor] = None,
-    ):
+    ) -> None:
         """Initializes the DiceLoss object.
 
         Args:
@@ -31,8 +28,6 @@ class DiceLoss(_Loss):
                 Defaults to `False`.
             softmax (bool): If `True`, applies a softmax activation to the input before computing the loss.
                 Defaults to `False`.
-            convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for
-                multi-class segmentation. Defaults to `False`.
             batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
                 Defaults to `False`, where the loss is computed independently for each item for the Dice calculation and reduced afterwards.
             include_background (bool): If `False`, channel index 0 (background class) is excluded from the calculation.
@@ -46,7 +41,7 @@ class DiceLoss(_Loss):
 
         """
 
-        if sum([sigmoid, softmax, convert_to_one_vs_rest]) > 1:
+        if sum([sigmoid, softmax]) > 1:
             raise ValueError(
                 "At most one of [sigmoid, softmax, convert_to_one_vs_rest] can be set to True. "
                 "You can only choose one of these options at a time or none if you already pass probabilites."
@@ -59,7 +54,6 @@ class DiceLoss(_Loss):
         self.alpha = alpha
         self.sigmoid = sigmoid
         self.softmax = softmax
-        self.convert_to_one_vs_rest = convert_to_one_vs_rest
         self.batch = batch
         self.include_background = include_background
         self.register_buffer("weights", weights)
@@ -114,8 +108,6 @@ class DiceLoss(_Loss):
             input = torch.sigmoid(input)
         elif self.softmax:
             input = torch.softmax(input, 1)
-        elif self.convert_to_one_vs_rest:
-            input = convert_to_one_vs_rest(input)
 
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 

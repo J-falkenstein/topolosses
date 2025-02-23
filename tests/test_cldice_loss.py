@@ -43,7 +43,7 @@ TEST_CASES = [
         0.3999987,
     ],
     [  # shape: (1, 3, 2, 2) default base loss (weighted dice),
-        {"convert_to_one_vs_rest": True, "weights": torch.tensor([5, 5, 5])},
+        {"softmax": True, "weights": torch.tensor([5, 5, 5])},
         {
             "input": torch.tensor(
                 [
@@ -64,9 +64,9 @@ TEST_CASES = [
                 ]
             ),
         },
-        0.55552411,
+        0.577917,
     ],
-    [  # shape: (2, 1, 2, 2), same as above but with defined base loss - sigmoid and smooth must be passed to base loss as well
+    [  # shape: (2, 1, 2, 2), same as above but with defined base loss - sigmoid and smooth must be passed to base loss as well (alterantive )
         {
             "include_background": True,
             "sigmoid": True,

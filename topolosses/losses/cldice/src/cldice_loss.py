@@ -6,8 +6,6 @@ from torch import Tensor
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
 
-from ...utils import convert_to_one_vs_rest
-
 
 class CLDiceLoss(_Loss):
     """A loss function for segmentation that combines a base loss and a CLDice component.
@@ -16,8 +14,8 @@ class CLDiceLoss(_Loss):
         Shit et al. (2021) clDice -- A Novel Topology-Preserving Loss Function
         for Tubular Structure Segmentation. (https://arxiv.org/abs/2003.07311)
 
-    This class allows flexibility in choosing a custom base loss function.
-    For a simpler implementation with a Dice base loss, use the `DiceCLDiceLoss` class.
+    By default the cl dice component is combined with a dice loss.
+    For more flexibility a custom base loss function can be passed.
     """
 
     def __init__(
@@ -31,8 +29,8 @@ class CLDiceLoss(_Loss):
         include_background: bool = False,
         use_base_loss: bool = True,
         base_loss: Optional[_Loss] = None,
-        weights: List[float] = None,
-    ):
+        weights: Optional[Tensor] = None,
+    ) -> None:
         """
         Args:
             iter_ (int): Number of iterations for soft skeleton computation. Higher values refine
@@ -56,10 +54,10 @@ class CLDiceLoss(_Loss):
                 applied to the Dice component**, not the CLDice component.
 
         Raises:
-            ValueError: If more than one of [sigmoid, softmax, convert_to_one_vs_rest] is set to True.
+            ValueError: If more than one of [sigmoid, softmax] is set to True.
         """
 
-        if sum([sigmoid, softmax, convert_to_one_vs_rest]) > 1:
+        if sum([sigmoid, softmax]) > 1:
             raise ValueError(
                 "At most one of [sigmoid, softmax, convert_to_one_vs_rest] can be set to True. "
                 "You can only choose one of these options at a time or none if you already pass probabilites."

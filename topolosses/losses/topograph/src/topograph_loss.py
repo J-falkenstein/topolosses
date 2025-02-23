@@ -1,5 +1,11 @@
 from __future__ import annotations
+import warnings
+from typing import List, Optional
 
+import torch
+from torch import Tensor
+from torch.nn.modules.loss import _Loss
+import torch.nn.functional as F
 from functools import partial
 import random
 import time
@@ -516,19 +522,55 @@ def find_saddle_points_in_8_neighborhood(tensor):
 
 
 class TopographLoss(_Loss):
+    """TopographLoss is a loss function designed to ensure strict topology preservation during image segmentation tasks."""
+
     def __init__(
         self,
-        softmax=False,
-        sigmoid=False,
+        softmax: bool = False,
+        sigmoid: bool = False,
         num_processes=1,
-        include_background=True,
+        include_background: bool = True,
         use_c=True,
         sphere=False,
         eight_connectivity=True,
         aggregation=AggregationType.MEAN,
         thres_distr=ThresholdDistribution.NONE,
         thres_var=0.0,
-    ):
+        use_base_loss: bool = True,
+        base_loss: Optional[_Loss] = None,
+        weights: Optional[Tensor] = None,
+    ) -> None:
+        """
+        Args:
+            softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
+                    This is useful for multi-class segmentation tasks. Defaults to `False`.
+            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
+                    Typically used for binary segmentation. Defaults to `False`.
+            num_processes (int): Number of processes to use during the computation of the soft skeleton.
+                    A higher value refines the skeleton but increases computation time. Defaults to 1.
+            include_background (bool): If `True`, includes the background class in the CLDice computation.
+                    Background inclusion in the Dice component should be controlled using `weights` instead.
+                    Defaults to `True`.
+            use_c (bool): If `True`, uses the component graph-based approach for topology preservation. Defaults to `True`.
+            sphere (bool): If `True`, applies spherical connectivity in the graph construction for topological preservation.
+                    Defaults to `False`.
+            eight_connectivity (bool): If `True`, uses eight-connectivity for the component graph construction.
+                    Defaults to `True`.
+            aggregation (AggregationType): Specifies the aggregation method for loss calculation across the batch.
+                    Possible values are `MEAN` or `SUM`. Defaults to `AggregationType.MEAN`.
+            thres_distr (ThresholdDistribution): Specifies the threshold distribution method for topological preservation.
+                    Defaults to `ThresholdDistribution.NONE`.
+            thres_var (float): The variance threshold for topological consistency enforcement. Defaults to 0.0.
+            use_base_loss (bool): If `True`, includes an additional base loss (e.g., cross-entropy) alongside CLDice loss.
+                    If set to `False`, only the CLDice component is used. Defaults to `True`.
+            base_loss (Optional[_Loss]): The base loss function (e.g., cross-entropy) to be used alongside the CLDice loss.
+                    Defaults to `None` which means a Dice loss is used. Ignored if `use_base_loss` is `False`.
+            weights (Optional[Tensor]): Class-wise weights for the default Dice component, allowing emphasis on specific classes
+                    or ignoring others. Only applied to the default base dice loss. Defaults to `None` (unweighted).
+
+        Raises:
+            TODO
+        """
         super(TopographLoss, self).__init__()
         self.softmax = softmax
         self.sigmoid = sigmoid
@@ -542,6 +584,10 @@ class TopographLoss(_Loss):
         self.aggregation = aggregation
         if self.num_processes > 1:
             self.pool = mp.Pool(num_processes)
+        self.use_base_component = use_base_loss
+        self.base_loss = base_loss
+        self.register_buffer("weights", weights)
+        self.weights: Optional[Tensor]
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -837,56 +883,6 @@ class TopographLoss(_Loss):
 
 
 class DiceTopographLoss(_Loss):
-    def __init__(
-        self,
-        softmax: bool = True,
-        dice_type: DiceType = DiceType.CLDICE,
-        num_processes: int = 1,
-        cldice_alpha: float = 0.5,
-        include_background: bool = True,
-        use_c=True,
-        sphere=False,
-        eight_connectivity=True,
-        aggregation=AggregationType.MEAN,
-        thres_distr=ThresholdDistribution.NONE,
-        thres_var=0.0,
-        no_dice=False,
-    ) -> None:
-        # TODO cldice is irrelevant because either dice as default base or you pass a base loss
-        super().__init__()
-        if dice_type == DiceType.DICE:
-            self.DiceLoss = Multiclass_CLDice(
-                softmax=softmax,
-                include_background=True,  # irrelevant because pure Dice always uses background
-                smooth=1e-5,
-                alpha=0.0,
-                convert_to_one_vs_rest=False,
-                batch=True,
-            )
-        elif dice_type == DiceType.CLDICE:
-            self.DiceLoss = Multiclass_CLDice(
-                softmax=softmax,
-                include_background=include_background,
-                smooth=1e-5,
-                alpha=cldice_alpha,
-                iter_=5,
-                convert_to_one_vs_rest=False,
-                batch=True,
-            )
-        else:
-            raise ValueError(f"Invalid dice type: {dice_type}")
-
-        self.TopographLoss = TopographLoss(
-            softmax=softmax,
-            num_processes=num_processes,
-            include_background=include_background,
-            use_c=use_c,
-            sphere=sphere,
-            eight_connectivity=eight_connectivity,
-            aggregation=aggregation,
-            thres_var=thres_var,
-            thres_distr=thres_distr,
-        )
 
     def forward(
         self,
