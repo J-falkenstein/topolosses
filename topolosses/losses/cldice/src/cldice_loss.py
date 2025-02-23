@@ -29,8 +29,8 @@ class CLDiceLoss(_Loss):
         softmax: bool = False,
         convert_to_one_vs_rest: bool = False,
         batch: bool = False,
-        use_base_component: bool = True,
         include_background: bool = False,
+        use_base_loss: bool = True,
         base_loss: Optional[_Loss] = None,
         weights: List[float] = None,
     ):
@@ -78,7 +78,7 @@ class CLDiceLoss(_Loss):
         self.convert_to_one_vs_rest = convert_to_one_vs_rest
         self.batch = batch
         self.include_background = include_background
-        self.use_base_component = use_base_component
+        self.use_base_component = use_base_loss
         self.base_loss = base_loss
         self.register_buffer("weights", weights)
         self.weights: Optional[Tensor]
@@ -94,6 +94,11 @@ class CLDiceLoss(_Loss):
                 warnings.warn(
                     "Alpha < 1 has no effect when no base component is used. The full ClDice loss will be returned."
                 )
+        if weights is not None and base_loss is not None:
+            warnings.warn(
+                "If a custom base loss is used, weights will be ignored."
+                "Weights are only applied to the default Dice component if no base loss is provided."
+            )
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Computes the CLDice loss and base loss for the given input and target.
@@ -152,10 +157,10 @@ class CLDiceLoss(_Loss):
         elif self.convert_to_one_vs_rest:
             input = convert_to_one_vs_rest(input)
 
+        reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
+
         if self.alpha < 1 and self.use_base_component and self.base_loss is None:
             base_loss = self._compute_dice_loss(input, target, reduce_axis)
-
-        reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 
         cl_dice = torch.tensor(0.0)
         if self.alpha > 0:

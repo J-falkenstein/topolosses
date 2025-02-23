@@ -1,4 +1,4 @@
-from .cldice.src.cldice_loss import DiceCLDiceLoss, BaseCLDiceLoss
+from .cldice.src.cldice_loss import CLDiceLoss
 from .dice.src.dice_loss import DiceLoss
 
-__all__ = ["DiceCLDiceLoss", "DiceLoss", "BaseCLDiceLoss"]
+__all__ = ["CLDiceLoss", "DiceLoss"]
