@@ -27,7 +27,6 @@ class CLDiceLoss(_Loss):
         smooth: float = 1e-5,
         sigmoid: bool = False,
         softmax: bool = False,
-        convert_to_one_vs_rest: bool = False,
         batch: bool = False,
         include_background: bool = False,
         use_base_loss: bool = True,
@@ -44,8 +43,6 @@ class CLDiceLoss(_Loss):
                 Defaults to `False`.
             softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
                 Defaults to `False`.
-            convert_to_one_vs_rest (bool): If `True`, converts the input into a one-vs-rest format for multi-class
-                segmentation. Defaults to `False`.
             batch (bool): If `True`, reduces the loss across the batch dimension by summing intersection and union areas before division.
                 Defaults to `False`, where the loss is computed independently for each item for the CLDice component calculation.
             include_background (bool): If `True`, includes the background class in CLDice computation. Defaults to `False`.
@@ -75,11 +72,11 @@ class CLDiceLoss(_Loss):
         self.alpha = alpha
         self.sigmoid = sigmoid
         self.softmax = softmax
-        self.convert_to_one_vs_rest = convert_to_one_vs_rest
         self.batch = batch
         self.include_background = include_background
         self.use_base_component = use_base_loss
         self.base_loss = base_loss
+        # TODO could think about removing the weights, then the default is just the unweighted dice
         self.register_buffer("weights", weights)
         self.weights: Optional[Tensor]
 
@@ -154,8 +151,6 @@ class CLDiceLoss(_Loss):
             input = torch.sigmoid(input)
         elif self.softmax:
             input = torch.softmax(input, 1)
-        elif self.convert_to_one_vs_rest:
-            input = convert_to_one_vs_rest(input)
 
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 
@@ -215,6 +210,7 @@ class CLDiceLoss(_Loss):
         return dice
 
 
+# TODO think about putting in class to not pass all the arguments (bc in topograph it makes sense there might be too many arguments to pass for it to be beautiful)
 def compute_cldice_loss(
     input: torch.Tensor,
     target: torch.Tensor,
