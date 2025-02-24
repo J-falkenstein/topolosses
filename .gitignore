@@ -23,6 +23,9 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+boost_1_82_0/
+eigen/
+
 
 # Installer logs
 pip-log.txt
