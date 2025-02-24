@@ -4,6 +4,7 @@ from torch import Tensor
 import enum
 import numpy as np
 from typing import List, Optional
+import torch.nn.functional as F
 
 
 def compute_default_dice_loss(

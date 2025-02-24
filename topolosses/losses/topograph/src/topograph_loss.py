@@ -13,8 +13,8 @@ import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
 import torch.multiprocessing as mp
 
-
 # C++ implementation
+# TODO figure out how to smartly implement
 import Topograph
 
 from losses.utils import (
