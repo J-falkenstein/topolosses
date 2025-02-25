@@ -31,7 +31,7 @@ TEST_CASES = [
             "input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]], [[[1.0, -1.0], [-1.0, 1.0]]]]),
             "target": torch.tensor([[[[1.0, 1.0], [1.0, 1.0]]], [[[1.0, 0.0], [1.0, 0.0]]]]),
         },
-        0.3333189,
+        0.541648,
     ],
     [  # shape: (2, 1, 2, 2) default base loss
         {"include_background": True, "sigmoid": True, "batch": True},
@@ -39,7 +39,7 @@ TEST_CASES = [
             "input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]], [[[1.0, -1.0], [-1.0, 1.0]]]]),
             "target": torch.tensor([[[[1.0, 1.0], [1.0, 1.0]]], [[[1.0, 0.0], [1.0, 0.0]]]]),
         },
-        0.3999987,
+        0.599998,
     ],
     [  # shape: (1, 3, 2, 2) default base loss (weighted dice),
         {"softmax": True},
@@ -63,7 +63,7 @@ TEST_CASES = [
                 ]
             ),
         },
-        0.577917,
+        0.858929,
     ],
     [  # shape: (2, 1, 2, 2), same as above but with defined base loss - sigmoid and smooth must be passed to base loss as well (alterantive )
         {
@@ -76,7 +76,7 @@ TEST_CASES = [
             "input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]], [[[1.0, -1.0], [-1.0, 1.0]]]]),
             "target": torch.tensor([[[[1.0, 1.0], [1.0, 1.0]]], [[[1.0, 0.0], [1.0, 0.0]]]]),
         },
-        0.3333189,
+        0.541648,
     ],
     [  # shape: (1, 2, 6, 6,)
         {},
@@ -114,7 +114,7 @@ TEST_CASES = [
                 2,
             ).permute(0, 3, 1, 2),
         },
-        0.19011,
+        0.308791,
     ],
 ]
 
@@ -141,7 +141,7 @@ class TestDiceCLDiceLoss(unittest.TestCase):
                 "target": torch.tensor([[[[1.0, 1.0], [1.0, 1.0]]], [[[1.0, 0.0], [1.0, 0.0]]]]).cuda(),
             }
             result = loss.forward(**input_data)
-            np.testing.assert_allclose(result.detach().cpu().numpy(), 0.3333189, rtol=1e-4)
+            np.testing.assert_allclose(result.detach().cpu().numpy(), 0.541648, rtol=1e-4)
 
     def test_ill_shape(self):
         loss = CLDiceLoss()

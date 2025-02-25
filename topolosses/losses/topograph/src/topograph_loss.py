@@ -14,7 +14,8 @@ from torch.nn.modules.loss import _Loss
 import torch.multiprocessing as mp
 
 # C++ implementation
-# TODO figure out how to smartly implement
+# TODO propbably have to change this for building with py-build-cmake 
+# Currently this works for dev by first creating a package just for the c++ code
 import Topograph
 
 from ...utils import (
@@ -535,7 +536,7 @@ class TopographLoss(_Loss):
         thres_distr=ThresholdDistribution.NONE,
         thres_var: float = 0.0,
         include_background: bool = False,
-        alpha: float = 0.5,
+        alpha: float = 0.1,
         softmax: bool = False,
         sigmoid: bool = False,
         use_base_loss: bool = True,
@@ -555,7 +556,7 @@ class TopographLoss(_Loss):
                 Defaults to 0.0.
             include_background (bool): If `True`, includes the background class in the topograph computation.
                 Background inclusion in the base loss component should be controlled independently.
-            alpha (float): Weighting factor for combining the topograph loss and base loss components. Defaults to 0.5.
+            alpha (float): Weighting factor for the topograph loss component. Is only applied if a base loss is used. Defaults to 0.1.
             sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
                 Typically used for binary segmentation. Defaults to `False`.
             softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
@@ -590,7 +591,6 @@ class TopographLoss(_Loss):
         self.alpha = alpha
         self.softmax = softmax
         self.sigmoid = sigmoid
-        # TODO einheitlich component vs. loss
         self.use_base_loss = use_base_loss
         self.base_loss = base_loss
 
@@ -620,7 +620,7 @@ class TopographLoss(_Loss):
         if target.shape != input.shape:
             raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
 
-        skip_index = 0 if self.include_background else 1
+        starting_class = 0 if self.include_background else 1
         num_classes = input.shape[1]
 
         if num_classes == 1:
@@ -632,7 +632,7 @@ class TopographLoss(_Loss):
                 warnings.warn(
                     "Single-channel prediction detected. The `include_background=False` setting  will be ignored."
                 )
-                skip_index = 0
+                starting_class = 0
 
         # Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
         # These settings have to be controlled by the user when initializing the base loss function
@@ -650,7 +650,7 @@ class TopographLoss(_Loss):
 
         topograph_loss = torch.tensor(0.0)
         if self.alpha > 0:
-            topograph_loss = self.compute_topopgraph_loss(input.float(), target.float(), skip_index, num_classes)
+            topograph_loss = self.compute_topopgraph_loss(input.float(), target.float(), starting_class, num_classes)
 
         total_loss= (
             topograph_loss if not self.use_base_loss else base_loss + self.alpha * topograph_loss
@@ -658,7 +658,7 @@ class TopographLoss(_Loss):
 
         return total_loss
 
-    def compute_topopgraph_loss(self, input, target, skip_index, num_classes):
+    def compute_topopgraph_loss(self, input, target, starting_class, num_classes):
 
         if self.thres_distr != ThresholdDistribution.NONE:
             # Get the random probability to add to a class
@@ -699,7 +699,7 @@ class TopographLoss(_Loss):
 
         single_calc_inputs = []
         # get critical nodes for each class
-        for class_index in range(skip_index, num_classes):
+        for class_index in range(starting_class, num_classes):
             # binarize image
             bin_preds = torch.zeros_like(argmax_preds)
             bin_gts = torch.zeros_like(argmax_gts)
@@ -913,6 +913,6 @@ class TopographLoss(_Loss):
                 if sum(num_elements) != 0:
                     g_loss *= len(nominator_means) / sum(num_elements)
         # normalize by number of classes and batch size
-        g_loss /= input.shape[0] * (num_classes - skip_index)
+        g_loss /= input.shape[0] * (num_classes - starting_class)
 
         return g_loss
