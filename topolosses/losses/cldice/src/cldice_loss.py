@@ -69,10 +69,10 @@ class CLDiceLoss(_Loss):
         self.alpha = alpha
         self.sigmoid = sigmoid
         self.softmax = softmax
-        self.use_base_component = use_base_loss
+        self.use_base_loss = use_base_loss
         self.base_loss = base_loss
 
-        if not self.use_base_component:
+        if not self.use_base_loss:
             if base_loss is not None:
                 warnings.warn("base_loss is ignored beacuse use_base_component is set to false")
             if self.alpha != 1:
@@ -122,7 +122,7 @@ class CLDiceLoss(_Loss):
         # Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
         # These settings have to be controlled by the user when initializing the base loss function
         base_loss = torch.tensor(0.0)
-        if self.alpha < 1 and self.use_base_component and self.base_loss is not None:
+        if self.alpha < 1 and self.use_base_loss and self.base_loss is not None:
             base_loss = self.base_loss(input, target)
 
         if self.sigmoid:
@@ -132,7 +132,7 @@ class CLDiceLoss(_Loss):
 
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 
-        if self.alpha < 1 and self.use_base_component and self.base_loss is None:
+        if self.alpha < 1 and self.use_base_loss and self.base_loss is None:
             base_loss = compute_default_dice_loss(
                 input,
                 target,
@@ -152,7 +152,7 @@ class CLDiceLoss(_Loss):
 
         # TODO do not multiple base loss by 1-alpha, this has an effect on the current test cases
         base_cl_dice_loss = (
-            cl_dice if not self.use_base_component else (1 - self.alpha) * base_loss + self.alpha * cl_dice
+            cl_dice if not self.use_base_loss else (1 - self.alpha) * base_loss + self.alpha * cl_dice
         )
 
         return base_cl_dice_loss  # , {"base": (1 - self.alpha) * base_loss, "cldice": self.alpha * cl_dice}

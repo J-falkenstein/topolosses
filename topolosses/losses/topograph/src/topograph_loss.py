@@ -534,7 +534,7 @@ class TopographLoss(_Loss):
         aggregation=AggregationType.MEAN,
         thres_distr=ThresholdDistribution.NONE,
         thres_var: float = 0.0,
-        include_background: bool = True,
+        include_background: bool = False,
         alpha: float = 0.5,
         softmax: bool = False,
         sigmoid: bool = False,
@@ -590,15 +590,16 @@ class TopographLoss(_Loss):
         self.alpha = alpha
         self.softmax = softmax
         self.sigmoid = sigmoid
-        self.use_base_component = use_base_loss
+        # TODO einheitlich component vs. loss
+        self.use_base_loss = use_base_loss
         self.base_loss = base_loss
 
-        if not self.use_base_component:
+        if not self.use_base_loss:
             if base_loss is not None:
                 warnings.warn("base_loss is ignored beacuse use_base_component is set to false")
             if self.alpha != 1:
                 warnings.warn(
-                    "Alpha < 1 has no effect when no base component is used. The full ClDice loss will be returned."
+                    "Alpha < 1 has no effect when no base component is used."
                 )
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -636,7 +637,7 @@ class TopographLoss(_Loss):
         # Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
         # These settings have to be controlled by the user when initializing the base loss function
         base_loss = torch.tensor(0.0)
-        if self.alpha < 1 and self.use_base_component and self.base_loss is not None:
+        if self.alpha < 1 and self.use_base_loss and self.base_loss is not None:
             base_loss = self.base_loss(input, target)
 
         if self.sigmoid:
@@ -644,13 +645,18 @@ class TopographLoss(_Loss):
         elif self.softmax:
             input = torch.softmax(input, 1)
 
-        if self.alpha < 1 and self.use_base_component and self.base_loss is None:
+        if self.alpha < 1 and self.use_base_loss and self.base_loss is None:
             base_loss = compute_default_dice_loss(input, target)
 
         topograph_loss = torch.tensor(0.0)
         if self.alpha > 0:
             topograph_loss = self.compute_topopgraph_loss(input.float(), target.float(), skip_index, num_classes)
-        return base_loss + self.alpha * topograph_loss
+
+        total_loss= (
+            topograph_loss if not self.use_base_loss else base_loss + self.alpha * topograph_loss
+        )
+
+        return total_loss
 
     def compute_topopgraph_loss(self, input, target, skip_index, num_classes):
 

@@ -12,7 +12,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from topolosses.losses import CLDiceLoss
 from topolosses.losses import DiceLoss
-import losses_original.dice_losses as cldice_loss_orignal
 
 # TODO test iter_, test weights
 TEST_CASES = [
@@ -136,13 +135,13 @@ class TestDiceCLDiceLoss(unittest.TestCase):
 
     def test_with_cuda(self):
         if torch.cuda.is_available():
-            loss = CLDiceLoss().cuda()
+            loss = CLDiceLoss(include_background=True, sigmoid=True, smooth=1e-4).cuda()
             input_data = {
-                "input": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]).cuda(),
-                "target": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]).cuda(),
+                "input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]], [[[1.0, -1.0], [-1.0, 1.0]]]]).cuda(),
+                "target": torch.tensor([[[[1.0, 1.0], [1.0, 1.0]]], [[[1.0, 0.0], [1.0, 0.0]]]]).cuda(),
             }
             result = loss.forward(**input_data)
-            np.testing.assert_allclose(result.detach().cpu().numpy(), 0.307773, rtol=1e-4)
+            np.testing.assert_allclose(result.detach().cpu().numpy(), 0.3333189, rtol=1e-4)
 
     def test_ill_shape(self):
         loss = CLDiceLoss()

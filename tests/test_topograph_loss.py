@@ -6,6 +6,7 @@ import unittest
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from parameterized import parameterized
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -13,110 +14,162 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from topolosses.losses import TopographLoss
 from topolosses.losses import DiceLoss
 
-# TODO test iter_, test weights
+def transform(tensor, num_classes=2):
+    return F.one_hot(tensor.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
+
 TEST_CASES = [
-    # [  # shape: (1, 1, 2, 2)
-    #     {"include_background": True, "sigmoid": True, "alpha": 0},
-    #     {"input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]]]), "target": torch.tensor([[[[1.0, 0.0], [1.0, 1.0]]]])},
-    #     0.307576,
-    # ],
-#     [  # shape: (1, 1, 2, 2) returning just the cl dice component
-#         {"include_background": True, "sigmoid": True, "smooth": 1e-6, "use_base_loss": False, "alpha": 1},
-#         {"input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]]]), "target": torch.tensor([[[[1.0, 0.0], [1.0, 1.0]]]])},
-#         0.5761159658,
-#     ],
-#     [  # shape: (2, 1, 2, 2) default base loss
-#         {"include_background": True, "sigmoid": True, "smooth": 1e-4},
-#         {
-#             "input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]], [[[1.0, -1.0], [-1.0, 1.0]]]]),
-#             "target": torch.tensor([[[[1.0, 1.0], [1.0, 1.0]]], [[[1.0, 0.0], [1.0, 0.0]]]]),
-#         },
-#         0.3333189,
-#     ],
-#     [  # shape: (2, 1, 2, 2) default base loss
-#         {"include_background": True, "sigmoid": True, "batch": True},
-#         {
-#             "input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]], [[[1.0, -1.0], [-1.0, 1.0]]]]),
-#             "target": torch.tensor([[[[1.0, 1.0], [1.0, 1.0]]], [[[1.0, 0.0], [1.0, 0.0]]]]),
-#         },
-#         0.3999987,
-#     ],
-#     [  # shape: (1, 3, 2, 2) default base loss (weighted dice),
-#         {"softmax": True},
-#         {
-#             "input": torch.tensor(
-#                 [
-#                     [
-#                         [[1.0, -1.0], [-1.0, 1.0]],
-#                         [[0.5, 0.2], [-0.3, -0.7]],
-#                         [[-1.0, 1.0], [1.0, -1.0]],
-#                     ]
-#                 ]
-#             ),
-#             "target": torch.tensor(
-#                 [
-#                     [
-#                         [[1.0, 0.0], [1.0, 1.0]],
-#                         [[0.0, 1.0], [1.0, 0.0]],
-#                         [[1.0, 1.0], [0.0, 1.0]],
-#                     ]
-#                 ]
-#             ),
-#         },
-#         0.577917,
-#     ],
-#     [  # shape: (2, 1, 2, 2), same as above but with defined base loss - sigmoid and smooth must be passed to base loss as well (alterantive )
-#         {
-#             "include_background": True,
-#             "sigmoid": True,
-#             "smooth": 1e-4,
-#             "base_loss": DiceLoss(sigmoid=True, smooth=1e-4),
-#         },
-#         {
-#             "input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]], [[[1.0, -1.0], [-1.0, 1.0]]]]),
-#             "target": torch.tensor([[[[1.0, 1.0], [1.0, 1.0]]], [[[1.0, 0.0], [1.0, 0.0]]]]),
-#         },
-#         0.3333189,
-#     ],
-    [  # shape: (1, 2, 6, 6,)
-        {},
-        {
-            "input": torch.nn.functional.one_hot(
-                1
-                - torch.tensor(
-                    [
-                        [
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        ]
-                    ]
-                ).to(torch.int64),
-                2,
-            ).permute(0, 3, 1, 2),
-            "target": torch.nn.functional.one_hot(
-                1
-                - torch.tensor(
-                    [
-                        [
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 1.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        ]
-                    ]
-                ).to(torch.int64),
-                2,
-            ).permute(0, 3, 1, 2),
-        },
-        0.19011,
+    [  
+        {"use_base_loss": False, "alpha": 1},
+        {"input": transform(torch.tensor([[[1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 0.0, 0.0, 0.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0]]])),
+        "target": transform(torch.tensor([[[0.0, 0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0]]]))},
+        3,
     ],
+    [  
+        {"use_base_loss": False, "alpha": 1},
+        {"input": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0]]])), 
+        "target": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0]]]))},
+        0,
+    ],
+    [
+        {"use_base_loss": False, "alpha": 1},
+        {
+            "input": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0]]])),
+            "target": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0]]]))
+        }, 
+        0
+    ],
+    [
+        {"use_base_loss": False, "alpha": 1},
+        {
+        "input": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]])),
+        "target": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]]))
+        }, 
+        1
+    ], 
+    [
+        {"use_base_loss": False, "alpha": 1},
+        {
+        "input": transform(1-torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]])),
+        "target": transform(1-torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]]))
+        }, 
+        1
+    ], 
+    [
+        {"use_base_loss": False, "alpha": 1},
+        {
+        "input": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0]]])),
+
+        "target": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0]]]))
+        },
+        0
+    ], 
+    [
+        {"use_base_loss": False, "alpha": 1},
+        {
+        "input": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0, 0.0]]])),
+        "target": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0]]]))
+        },
+        0
+    ], 
+    [
+        {"use_base_loss": False, "alpha": 1},
+        {
+        "input": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]])), 
+        "target": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]]))
+            },
+        0
+    ], 
+    [
+        {"use_base_loss": False, "alpha": 1},
+        {
+        "input": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]]])),
+        "target": transform(torch.tensor([[[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0]]]))
+        },
+        1
+    ]
 ]
+
+
 
 
 class TestDiceTopographLoss(unittest.TestCase):
@@ -135,7 +188,7 @@ class TestDiceTopographLoss(unittest.TestCase):
 
     def test_with_cuda(self):
         if torch.cuda.is_available():
-            loss = TopographLoss().cuda()
+            loss = TopographLoss(include_background=True).cuda()
             input_data = {
                 "input": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]).cuda(),
                 "target": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]).cuda(),

@@ -17,12 +17,12 @@ from topolosses.losses.dice.src.dice_loss import DiceLoss
 
 TEST_CASES = [
     [  # shape: (1, 1, 2, 2), (1, 1, 2, 2)
-        {"include_background": True, "sigmoid": True, "smooth": 1e-6},
+        {"sigmoid": True, "smooth": 1e-6},
         {"input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]]]), "target": torch.tensor([[[[1.0, 0.0], [1.0, 1.0]]]])},
         0.307576,
     ],
     [  # shape: (2, 1, 2, 2), (2, 1, 2, 2)
-        {"include_background": True, "sigmoid": True, "smooth": 1e-4},
+        {"sigmoid": True, "smooth": 1e-4},
         {
             "input": torch.tensor([[[[1.0, -1.0], [-1.0, 1.0]]], [[[1.0, -1.0], [-1.0, 1.0]]]]),
             "target": torch.tensor([[[[1.0, 1.0], [1.0, 1.0]]], [[[1.0, 0.0], [1.0, 0.0]]]]),
@@ -30,7 +30,7 @@ TEST_CASES = [
         0.416657,
     ],
     [  # shape: (2, 1, 2, 2), (2, 1, 2, 2)
-        {"include_background": True, "smooth": 1e-4},
+        {"smooth": 1e-4},
         {
             "input": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]),
             "target": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]),
@@ -78,7 +78,7 @@ class TestDiceLoss(unittest.TestCase):
 
     def test_with_cuda(self):
         if torch.cuda.is_available():
-            loss = DiceLoss().cuda()
+            loss = DiceLoss(smooth=1e-4).cuda()
             input_data = {
                 "input": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]).cuda(),
                 "target": torch.tensor([[[[0.3, 0.4], [0.7, 0.9]]], [[[1.0, 0.1], [0.5, 0.3]]]]).cuda(),
