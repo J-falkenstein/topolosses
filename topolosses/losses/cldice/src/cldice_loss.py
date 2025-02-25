@@ -133,7 +133,7 @@ class CLDiceLoss(_Loss):
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 
         if self.alpha < 1 and self.use_base_loss and self.base_loss is None:
-            base_loss = compute_default_dice_loss(input, target)
+            base_loss = compute_default_dice_loss(input, target, reduce_axis, self.smooth,)
 
         cl_dice = torch.tensor(0.0)
         if self.alpha > 0:

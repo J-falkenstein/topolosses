@@ -12,6 +12,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from topolosses.losses import CLDiceLoss
 from topolosses.losses import DiceLoss
+from tests.losses_original.dice_losses import Multiclass_CLDice
 
 # TODO test iter_, test weights
 TEST_CASES = [
@@ -129,7 +130,8 @@ class TestDiceCLDiceLoss(unittest.TestCase):
     # def test_result_CLDice(self, input_param, input_data, expected_val):
     #     result = CLDiceLoss(**input_param).forward(**input_data)
     #     print(result.item())
-    #     expected_val = cldice_loss_orignal.Multiclass_CLDice(**input_param).forward(**input_data)
+    #     expected_val, dic = Multiclass_CLDice(**input_param).forward(**input_data)
+    #     print(dic)
     #     print(expected_val[0].item())
     #     np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val[0].item(), rtol=1e-5)
 
