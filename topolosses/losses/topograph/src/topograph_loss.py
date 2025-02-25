@@ -17,7 +17,7 @@ import torch.multiprocessing as mp
 # TODO figure out how to smartly implement
 import Topograph
 
-from losses.utils import (
+from ...utils import (
     AggregationType,
     ThresholdDistribution,
     fill_adj_matr,

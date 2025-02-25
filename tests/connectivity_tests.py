@@ -55,12 +55,8 @@ ax[2].imshow(draw_pairing, cmap=cmap)
 # %%
 import importlib
 import metrics.topograph as topograph_metric
-import metrics.betti_error as betti_metric
-import losses.betti_losses as betti_losses
-from losses.utils import FiltrationType, ActivationType
 importlib.reload(topograph_metric)
-importlib.reload(betti_metric)
-importlib.reload(betti_losses)
+
 
 def test_metric(module, pred, gt, expected_result, ignore_background=True, num_classes=2):
     fig, ax = plt.subplots(1, 2, figsize=(20, 20))
@@ -71,34 +67,12 @@ def test_metric(module, pred, gt, expected_result, ignore_background=True, num_c
     pred_onehot = torch.nn.functional.one_hot(pred.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
     gt_onehot = torch.nn.functional.one_hot(gt.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
 
-    bm_crit_8 = betti_losses.FastBettiMatchingLoss(
-        filtration_type=FiltrationType.SUBLEVEL,
-        activation=ActivationType.NONE
-    )
-    bm_crit_4 = betti_losses.FastBettiMatchingLoss(
-        filtration_type=FiltrationType.SUPERLEVEL,
-        activation=ActivationType.NONE,
-    )
+
     topograph_metric_8 = module.TopographMetric(num_processes=1, ignore_background=ignore_background, eight_connectivity=True)
-    topograph_metric_4 = module.TopographMetric(num_processes=1, ignore_background=ignore_background, eight_connectivity=False)
-    bm_metric_4 = betti_metric.BettiNumberMetric(ignore_background=ignore_background, eight_connectivity=False)
-    bm_metric_8 = betti_metric.BettiNumberMetric(ignore_background=ignore_background, eight_connectivity=True)
 
     metric_res_8 = topograph_metric_8(pred_onehot, gt_onehot)
-    metric_res_4 = topograph_metric_4(pred_onehot, gt_onehot)
-    b0_errors_4, b1_errors_4, bm_losses_4, normalized_bm_losses = bm_metric_4(pred_onehot, gt_onehot)
-    b0_errors_8, b1_errors_8, bm_losses_8, normalized_bm_losses = bm_metric_8(pred_onehot, gt_onehot)
-    bm_loss_8 = bm_crit_8(pred_onehot[:,1:], gt_onehot[:,1:])
-    bm_loss_4 = bm_crit_4(pred_onehot[:,1:], gt_onehot[:,1:])
 
     print("Metric: ", metric_res_8, " Expected: ", expected_result)
-    print("Topograph 4-conn: ", metric_res_4)
-    print("Betti Matching Metric 4-conn: ", bm_losses_4)
-    print("b0_errors_4: ", b0_errors_4, " b1_errors_4: ", b1_errors_4)
-    print("BM Loss_4: ", bm_loss_4)
-    print("Betti Matching Metric 8-conn: ", bm_losses_8)
-    print("b0_errors_8: ", b0_errors_8, " b1_errors_8: ", b1_errors_8)
-    print("BM Loss_8: ", bm_loss_8)
     if metric_res_8 != expected_result:
         raise ValueError("Test failed")
 
