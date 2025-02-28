@@ -16,7 +16,17 @@ import torch.multiprocessing as mp
 # C++ implementation
 # TODO propbably have to change this for building with py-build-cmake 
 # Currently this works for dev by first creating a package just for the c++ code
-import Topograph
+# When testing locally have to build the c++ poython extension module, 
+# then can either install it to local lib with:
+#import Topograph
+# or i can load the module with the following code
+# import importlib.machinery
+# module_path = "topolosses/losses/topograph/src/build/lib.linux-x86_64-cpython-312/Topograph.cpython-312-x86_64-linux-gnu.so"
+# loader = importlib.machinery.ExtensionFileLoader("Topograph", module_path)
+# Topograph = loader.load_module()
+# when building might want to this: 
+from topolosses.losses.topograph import Topograph
+
 
 from ...utils import (
     AggregationType,
