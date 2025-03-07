@@ -19,8 +19,6 @@ jobs:
       # Step 2: Set up Python
       - name: Set up Python
         uses: actions/setup-python@v2
-        with:
-          python-version: '3.8.18'
 
       # Step 3: Install build dependencies
       - name: Install dependencies
@@ -28,18 +26,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install cibuildwheel 
 
-      - name: Install dependencies
-        run: |
-          # Install necessary dependencies inside the container
-          yum install -y \
-            cmake \
-            git \
-            python3-dev \
-            gcc-c++ \
-            libopencv-devel \
-            boost-devel \
-            eigen3-devel \
-            libomp-devel
+      # - name: Install dependencies
+      #   run: |
+      #     # Install necessary dependencies inside the container
+      #     yum install -y \
+      #       cmake \
+      #       git \
+      #       python3-dev \
+      #       gcc-c++ \
+      #       libopencv-devel \
+      #       boost-devel \
+      #       eigen3-devel \
+      #       libomp-devel
 
       # Step 4: Build the wheel using cibuildwheel and the pyproject.toml file
       - name: Build Wheel using cibuildwheel
