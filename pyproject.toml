@@ -36,6 +36,3 @@ include = ["CMakeLists.txt", "topolosses/losses/topograph/src/ext/*.cpp"]
 minimum_version = "3.17"
 build_type = "Release"
 build_args = ["-j"]
-
-[tool.cibuildwheel]
-manylinux-x86_64-image = "manylinux2014"
