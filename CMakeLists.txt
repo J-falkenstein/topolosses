@@ -4,34 +4,33 @@ project(topolosses)
 # Find Python and pybind11
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(Boost REQUIRED)
+find_package(Eigen3 REQUIRED)
+find_package(OpenMP REQUIRED)
 
 
-# Define the C++ extension
+# Include directories
+include_directories(
+    ${OpenCV_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR}
+    ${Boost_INCLUDE_DIRS}
+)
+
+# Specify the extension module you want to build
 add_library(topograph MODULE 
-    topolosses/losses/topograph/src/ext/topograph.cpp 
+    topolosses/losses/topograph/src/ext/topograph.cpp
     topolosses/losses/topograph/src/ext/_topograph.cpp
 )
 
-
-# Link the pybind11 library to your C++ extension
 target_link_libraries(topograph PRIVATE pybind11::module)
 
-# Set any necessary compile flags
-target_compile_options(topograph PRIVATE -O3)
-
-# Ensure the generated module has the proper file extension for Python on your platform
-set_target_properties(topograph PROPERTIES
-    PREFIX ""
-    SUFFIX ".so"   # Use .pyd for Windows, .so for Linux/MacOS
+# Install the module to Python site packages
+install(TARGETS topograph
+    LIBRARY DESTINATION ./topolosses/losses/topograph/src
 )
 
-# Include directories for pybind11 and your own headers
-target_include_directories(topograph PRIVATE 
-    ${Python3_INCLUDE_DIRS}
-    ${pybind11_INCLUDE_DIRS}
-    topolosses/losses/topograph/src/ext
-)
-
-# Install the Python module
-install(TARGETS topograph DESTINATION ${PYTHON_SITE_PACKAGES}/topolosses/losses/topograph)
-
+if(OpenMP_CXX_FOUND)
+  target_compile_options(topograph PRIVATE ${OpenMP_CXX_FLAGS})
+  target_link_libraries(topograph PRIVATE OpenMP::OpenMP_CXX)
+endif()

@@ -1,14 +1,10 @@
 [build-system]
-requires = [
-    "setuptools>=42",    # Ensure you have a modern version of setuptools
-    "cmake",              # CMake is needed to build C++ extensions
-    "pybind11",           # pybind11 to expose C++ code to Python
-]
-build-backend = "setuptools.build_meta"
+requires = ["py-build-cmake~=0.4.2"]
+build-backend = "py_build_cmake.build"
 
 [project]
 name = "topolosses"
-version = "0.0.33"
+version = "0.0.36"
 description = "A collection of losses and metrics for topology-preserving image segmentation."
 readme = "topolosses/README.md"
 requires-python = ">=3.7"
@@ -19,11 +15,24 @@ authors = [
 dependencies = [
     "torch>=1.9"
 ]
-classifiers = [
-    "Operating System :: OS Independent",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python",
+classifiers=[
+        "Operating System :: OS Independent",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python",
+        # TODO add more classifiers
 ]
 
 [project.urls]
 Repository = "https://github.com/J-falkenstein/topolosses"
+
+[tool.py-build-cmake.module]
+name = "topolosses"
+# directory = "topolosses/losses/topograph/src"
+
+[tool.py-build-cmake.sdist]
+include = ["CMakeLists.txt", "topolosses/losses/topograph/src/ext/*.cpp"]
+
+[tool.py-build-cmake.cmake]
+minimum_version = "3.17"
+build_type = "Release"
+build_args = ["-j"]
