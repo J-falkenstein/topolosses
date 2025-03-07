@@ -36,3 +36,9 @@ include = ["CMakeLists.txt", "topolosses/losses/topograph/src/ext/*.cpp"]
 minimum_version = "3.17"
 build_type = "Release"
 build_args = ["-j"]
+
+[tool.cibuildwheel.linux]
+before-all = [
+    "yum install -y boost-devel opencv-devel python3-devel",
+    "pip install pybind11",
+    ]

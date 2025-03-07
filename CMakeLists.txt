@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 project(topolosses)
 
-# Find Python and pybind11
+# Find Pacakes that need to beinstalled
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
 find_package(pybind11 REQUIRED)
 find_package(OpenCV REQUIRED)

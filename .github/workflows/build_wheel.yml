@@ -7,10 +7,6 @@ jobs:
   build:
     runs-on: ubuntu-latest  # Run on a fresh Ubuntu environment
 
-    container:
-      image: quay.io/pypa/manylinux_2_28_x86_64  # Use the manylinux base image
-      options: --user root  # Run as root to install dependencies
-
     steps:
       # Step 1: Check out the code
       - name: Checkout code
