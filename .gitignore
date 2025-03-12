@@ -23,8 +23,8 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
-boost_1_82_0/
-eigen/
+external/
+wheelhouse/
 
 
 # Installer logs

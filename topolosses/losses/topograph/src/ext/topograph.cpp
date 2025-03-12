@@ -11,8 +11,8 @@
 #include <Eigen/Dense>
 #include <boost/pending/disjoint_sets.hpp>
 #include <opencv2/core/mat.hpp>
-#include <opencv2/imgproc.hpp>
 #include <opencv2/core/eigen.hpp>
+#include <opencv2/imgproc.hpp>
 #include <stdexcept>
 #include <queue>
 #include <memory>

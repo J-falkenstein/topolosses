@@ -22,19 +22,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install cibuildwheel 
 
-      # - name: Install dependencies
-      #   run: |
-      #     # Install necessary dependencies inside the container
-      #     yum install -y \
-      #       cmake \
-      #       git \
-      #       python3-dev \
-      #       gcc-c++ \
-      #       libopencv-devel \
-      #       boost-devel \
-      #       eigen3-devel \
-      #       libomp-devel
-
       # Step 4: Build the wheel using cibuildwheel and the pyproject.toml file
       - name: Build Wheel using cibuildwheel
         run: |

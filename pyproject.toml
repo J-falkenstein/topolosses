@@ -4,7 +4,7 @@ build-backend = "py_build_cmake.build"
 
 [project]
 name = "topolosses"
-version = "0.0.36"
+version = "0.0.37"
 description = "A collection of losses and metrics for topology-preserving image segmentation."
 readme = "topolosses/README.md"
 requires-python = ">=3.7"
@@ -16,7 +16,6 @@ dependencies = [
     "torch>=1.9"
 ]
 classifiers=[
-        "Operating System :: OS Independent",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         # TODO add more classifiers
@@ -39,6 +38,14 @@ build_args = ["-j"]
 
 [tool.cibuildwheel.linux]
 before-all = [
-    "yum install -y boost-devel opencv-devel python3-devel",
-    "pip install pybind11",
+    "yum install -y boost-devel python3-devel",
+    "pip install 'pybind11[global]'",
+    "curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh",
+    "bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda",
+    "export PATH=/opt/miniconda/bin:$PATH",
+    "conda init bash",
+    "source ~/.bashrc",
+    "conda install -y -c conda-forge opencv",
+    "export OpenCV_DIR=$(find /opt/miniconda -name 'OpenCVConfig.cmake' -exec dirname {} \\; | head -n 1)",
+    "echo 'OpenCV CMake dir found at: '$OpenCV_DIR",
     ]
