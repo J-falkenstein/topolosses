@@ -15,7 +15,8 @@ import torch.multiprocessing as mp
 
 # C++ implementation Topograph, can be installed locally as own package with the setup file 
 # during the build process for the distribution file a similar package is build using the cmake file. The important statement stays the same
-import Topograph
+#import Topograph
+from . import _topograph
 
 from ...utils import (
     AggregationType,
@@ -410,7 +411,7 @@ def create_relabel_masks_c(critical_node_list, cluster_lengths, all_labels):
     critical_nodes = np.asfortranarray(critical_node_list).astype(np.int32)
     cluster_lengths = np.asfortranarray(cluster_lengths).astype(np.int32)
 
-    relabel_indices = Topograph.get_relabel_indices(all_labels, critical_nodes, cluster_lengths)
+    relabel_indices = _topograph.get_relabel_indices(all_labels, critical_nodes, cluster_lengths)
 
     return relabel_indices
 
