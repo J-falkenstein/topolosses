@@ -13,11 +13,9 @@ import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
 import torch.multiprocessing as mp
 
-# C++ implementation, can be installed locally as own package with the setup file 
+# C++ implementation Topograph, can be installed locally as own package with the setup file 
 # during the build process for the distribution file a similar package is build using the cmake file. The important statement stays the same
-#import Topograph
-from . import _topograph
-
+import Topograph
 
 from ...utils import (
     AggregationType,

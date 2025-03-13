@@ -12,7 +12,6 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from topolosses.losses import CLDiceLoss
 from topolosses.losses import DiceLoss
-from tests.losses_original.dice_losses import Multiclass_CLDice
 
 # TODO test iter_, test weights
 TEST_CASES = [

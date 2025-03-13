@@ -8,8 +8,8 @@ __version__ = "1.0.0"
 conda_prefix = os.getenv("CONDA_PREFIX")
 print(conda_prefix)
 extra_compile_args = sysconfig.get_config_var("CFLAGS").split()
-eigen_path = os.path.abspath(os.path.join(".", "eigen4"))
-print("Eigen path:", eigen_path)
+# eigen_path = os.path.abspath(os.path.join(".", "eigen4"))
+# print("Eigen path:", eigen_path)
 
 ext_modules = [
     Pybind11Extension(

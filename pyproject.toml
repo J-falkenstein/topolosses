@@ -1,51 +1,65 @@
 [build-system]
-requires = ["py-build-cmake~=0.4.2"]
-build-backend = "py_build_cmake.build"
+requires = ["scikit-build-core", "pybind11"]
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "topolosses"
-version = "0.0.37"
-description = "A collection of losses and metrics for topology-preserving image segmentation."
-readme = "topolosses/README.md"
-requires-python = ">=3.7"
-license = {file = "LICENSE"}
-authors = [
-    { name = "Janek Falkenstein", email = "j.falkenstein@tum.de" }
-]
-dependencies = [
-    "torch>=1.9"
-]
-classifiers=[
-        "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python",
-        # TODO add more classifiers
-]
+version = "0.1.0"
+description = "Topological losses for image segmentation"
+readme = "README.md"
+requires-python = ">=3.8"
+# Add your authors, dependencies, etc.
 
-[project.urls]
-Repository = "https://github.com/J-falkenstein/topolosses"
+[tool.scikit-build]
+wheel.packages = ["topolosses"]
 
-[tool.py-build-cmake.module]
-name = "topolosses"
-# directory = "topolosses/losses/topograph/src"
+# [build-system]
+# requires = ["py-build-cmake~=0.4.2"]
+# build-backend = "py_build_cmake.build"
 
-[tool.py-build-cmake.sdist]
-include = ["CMakeLists.txt", "topolosses/losses/topograph/src/ext/*.cpp"]
+# [project]
+# name = "topolosses"
+# version = "0.0.37"
+# description = "A collection of losses and metrics for topology-preserving image segmentation."
+# readme = "topolosses/README.md"
+# requires-python = ">=3.7"
+# license = {file = "LICENSE"}
+# authors = [
+#     { name = "Janek Falkenstein", email = "j.falkenstein@tum.de" }
+# ]
+# dependencies = [
+#     "torch>=1.9"
+# ]
+# classifiers=[
+#         "License :: OSI Approved :: MIT License",
+#         "Programming Language :: Python",
+#         # TODO add more classifiers
+# ]
 
-[tool.py-build-cmake.cmake]
-minimum_version = "3.17"
-build_type = "Release"
-build_args = ["-j"]
+# [project.urls]
+# Repository = "https://github.com/J-falkenstein/topolosses"
 
-[tool.cibuildwheel.linux]
-before-all = [
-    "yum install -y boost-devel python3-devel",
-    "pip install 'pybind11[global]'",
-    "curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh",
-    "bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda",
-    "export PATH=/opt/miniconda/bin:$PATH",
-    "conda init bash",
-    "source ~/.bashrc",
-    "conda install -y -c conda-forge opencv",
-    "export OpenCV_DIR=$(find /opt/miniconda -name 'OpenCVConfig.cmake' -exec dirname {} \\; | head -n 1)",
-    "echo 'OpenCV CMake dir found at: '$OpenCV_DIR",
-    ]
+# [tool.py-build-cmake.module]
+# name = "topolosses"
+
+# [tool.py-build-cmake.sdist]
+# include = ["CMakeLists.txt", "topolosses/losses/topograph/src/ext/*.cpp"]
+
+# [tool.py-build-cmake.cmake]
+# minimum_version = "3.17"
+# build_type = "Release"
+# build_args = ["-j"]
+
+# [tool.cibuildwheel.linux]
+# before-all = [
+#     "yum install -y boost-devel python3-devel",
+#     "pip install 'pybind11[global]'",
+#     "curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh",
+#     "bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda",
+#     "export PATH=/opt/miniconda/bin:$PATH",
+#     "conda init bash",
+#     "source ~/.bashrc",
+#     "conda install -y -c conda-forge opencv",
+#     "export OpenCV_DIR=$(find /opt/miniconda -name 'OpenCVConfig.cmake' -exec dirname {} \\; | head -n 1)",
+#     "echo 'OpenCV CMake dir found at: '$OpenCV_DIR",
+#     ]
