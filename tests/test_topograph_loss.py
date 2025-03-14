@@ -9,6 +9,7 @@ import torch
 import torch.nn.functional as F
 from parameterized import parameterized
 
+# test installed topoloss package without adding sys.path
 #sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from topolosses.losses import TopographLoss

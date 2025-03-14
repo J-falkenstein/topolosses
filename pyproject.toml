@@ -5,50 +5,37 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "topolosses"
 version = "0.1.0"
-description = "Topological losses for image segmentation"
-readme = "README.md"
+description = "A collection of losses and metrics for topology-preserving image segmentation."
+readme = "topolosses/README.md"
+authors = [
+    { name = "Janek Falkenstein", email = "j.falkenstein@tum.de" }
+]
+classifiers=[
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python",
+        # TODO add more classifiers
+]
 requires-python = ">=3.8"
-# Add your authors, dependencies, etc.
+# these are downloaded and installed beforehand
+dependencies = [
+    "torch>=1.9", 
+    "scipy",
+    "numpy"
+]
+# other libraries
+# eigen3, boost are header only libraries and are not needed later on
+# opencv can be bundled into the wheel afterwards with auditwheel repair (for this the needed libraries need to be installed locally) and needs pip install patchelf.
+
+# needed when not repairing: 
+# works when conda opencv is installed and export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH is set
+# this that during the build the library is found and a reference is set in the binary, but during runtime the conda path is not part of LD_libray_path
+# a cleaner solution is to set the rpath (runtime path) during building
+
+[project.urls]
+Repository = "https://github.com/J-falkenstein/topolosses"
 
 [tool.scikit-build]
 wheel.packages = ["topolosses"]
-
-# [build-system]
-# requires = ["py-build-cmake~=0.4.2"]
-# build-backend = "py_build_cmake.build"
-
-# [project]
-# name = "topolosses"
-# version = "0.0.37"
-# description = "A collection of losses and metrics for topology-preserving image segmentation."
-# readme = "topolosses/README.md"
-# requires-python = ">=3.7"
-# license = {file = "LICENSE"}
-# authors = [
-#     { name = "Janek Falkenstein", email = "j.falkenstein@tum.de" }
-# ]
-# dependencies = [
-#     "torch>=1.9"
-# ]
-# classifiers=[
-#         "License :: OSI Approved :: MIT License",
-#         "Programming Language :: Python",
-#         # TODO add more classifiers
-# ]
-
-# [project.urls]
-# Repository = "https://github.com/J-falkenstein/topolosses"
-
-# [tool.py-build-cmake.module]
-# name = "topolosses"
-
-# [tool.py-build-cmake.sdist]
-# include = ["CMakeLists.txt", "topolosses/losses/topograph/src/ext/*.cpp"]
-
-# [tool.py-build-cmake.cmake]
-# minimum_version = "3.17"
-# build_type = "Release"
-# build_args = ["-j"]
 
 # [tool.cibuildwheel.linux]
 # before-all = [
@@ -63,3 +50,4 @@ wheel.packages = ["topolosses"]
 #     "export OpenCV_DIR=$(find /opt/miniconda -name 'OpenCVConfig.cmake' -exec dirname {} \\; | head -n 1)",
 #     "echo 'OpenCV CMake dir found at: '$OpenCV_DIR",
 #     ]
+# TODO on container: opencv can be bundled into the wheel afterwards with auditwheel repair (for this the needed libraries need to be installed locally) and needs pip install patchelf.
