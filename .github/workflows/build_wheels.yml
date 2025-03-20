@@ -53,7 +53,7 @@ jobs:
             brew install gcc@13 &&
             export GCC_INCLUDE_DIR=$(echo | $(brew --prefix gcc)/bin/g++-13 -E -Wp,-v - 2>&1 | grep '^ /.*include/c++/' | head -n 1 | tr -d ' ') &&
             echo "Found GCC include directory at: $GCC_INCLUDE_DIR" &&
-            export PATH= $GCC_INCLUDE_DIR:$PATH &&
+            export PATH=$GCC_INCLUDE_DIR:$PATH &&
             export OpenMP_ROOT=/opt/homebrew/opt/libomp &&
             curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh &&
             bash Miniconda3-latest-MacOSX-x86_64.sh -b -p $HOME/miniconda &&
