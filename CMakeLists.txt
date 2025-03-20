@@ -4,6 +4,7 @@ project(topolosses)
 list(APPEND CMAKE_PREFIX_PATH "/opt/miniconda")
 list(APPEND CMAKE_PREFIX_PATH "/home/computacenter/miniconda3")
 list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/libomp:/opt/homebrew/opt/llvm")
+list(APPEND CMAKE_PREFIX_PATH "$ENV{HOME}/miniconda")
 
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)

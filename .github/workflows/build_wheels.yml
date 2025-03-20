@@ -55,6 +55,8 @@ jobs:
             bash Miniconda3-latest-MacOSX-x86_64.sh -b -p $HOME/miniconda &&
             export PATH=$HOME/miniconda/bin:$PATH &&
             source $HOME/miniconda/bin/activate &&
+            export OpenCV_DIR=$(find $HOME/miniconda -name "OpenCVConfig.cmake" -exec dirname {} \; | head -n 1) &&
+            echo "Found OpenCV at: $OpenCV_DIR" &&
             $HOME/miniconda/bin/conda install -y -c conda-forge opencv
       
       - name: Upload wheels as artifacts
