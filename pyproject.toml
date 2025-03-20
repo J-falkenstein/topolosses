@@ -26,28 +26,34 @@ dependencies = [
 # eigen3, boost are header only libraries and are not needed later on
 # opencv can be bundled into the wheel afterwards with auditwheel repair (for this the needed libraries need to be installed locally) and needs pip install patchelf.
 
-# needed when not repairing: 
-# works when conda opencv is installed and export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH is set
-# this that during the build the library is found and a reference is set in the binary, but during runtime the conda path is not part of LD_libray_path
-# a cleaner solution is to set the rpath (runtime path) during building
-
 [project.urls]
 Repository = "https://github.com/J-falkenstein/topolosses"
 
 [tool.scikit-build]
 wheel.packages = ["topolosses"]
 
-# [tool.cibuildwheel.linux]
-# before-all = [
-#     "yum install -y boost-devel python3-devel",
-#     "pip install 'pybind11[global]'",
-#     "curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh",
-#     "bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda",
-#     "export PATH=/opt/miniconda/bin:$PATH",
-#     "conda init bash",
-#     "source ~/.bashrc",
-#     "conda install -y -c conda-forge opencv",
-#     "export OpenCV_DIR=$(find /opt/miniconda -name 'OpenCVConfig.cmake' -exec dirname {} \\; | head -n 1)",
-#     "echo 'OpenCV CMake dir found at: '$OpenCV_DIR",
-#     ]
-# TODO on container: opencv can be bundled into the wheel afterwards with auditwheel repair (for this the needed libraries need to be installed locally) and needs pip install patchelf.
+[tool.cibuildwheel]
+build = ["*-manylinux_*"]
+skip = ["*-manylinux_i686"]
+
+manylinux-x86_64-image = "manylinux_2_28"
+manylinux-aarch64-image = "manylinux_2_28"
+manylinux-ppc64le-image = "manylinux_2_28"
+manylinux-s390x-image = "manylinux_2_28"
+
+[tool.cibuildwheel.linux]
+
+# TODO adjust to other architectures
+before-all = [
+    "yum install -y boost-devel python3-devel",
+    "pip install 'pybind11[global]'",
+    "curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh",
+    "bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda",
+    "export PATH=/opt/miniconda/bin:$PATH",
+    "conda init bash",
+    "source ~/.bashrc",
+    "conda install -y -c conda-forge opencv",
+    "conda install -y anaconda::eigen",
+    ]
+# opencv can be bundled into the wheel afterwards with auditwheel repair (for this the needed libraries need to be installed locally)
+repair-wheel-command = "LD_LIBRARY_PATH=/opt/miniconda/lib:$LD_LIBRARY_PATH auditwheel repair --plat manylinux_2_34_x86_64 -w {dest_dir} {wheel}"

@@ -9,11 +9,10 @@ topolosses
 ├─ LICENSE
 ├─ README.md
 ├─ pyproject.toml
-├─ tests
-│  ├─ test_cldice_loss.py
-│  ├─ test_dice_loss.py
-│  ├─ test_topograph_loss.py
-│  └─ test_utils.py
+├─ external
+│  ├─ eigen3
+│     ├─ cmake
+│        ├─ Eigen3Config.cmake.in
 ├─ topolosses
 │  ├─ README.md
 │  ├─ __init__.py
