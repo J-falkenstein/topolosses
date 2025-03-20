@@ -35,6 +35,7 @@ wheel.packages = ["topolosses"]
 [tool.cibuildwheel]
 # currently this only creates x86_64 arch wheels
 # for extension it is easier to use github actions to avoid cross-compilling and emulation
+# these are overridden by the env varibales set in github action
 archs = ["native"]
 manylinux-x86_64-image = "manylinux_2_28"
 
