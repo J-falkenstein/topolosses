@@ -34,12 +34,14 @@ jobs:
           CIBW_ARCHS_LINUX: "x86_64"
           
           # macOS-specific settings
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_ARCHS_MACOS: "arm64"
           CIBW_ENVIRONMENT_MACOS: >
             MACOSX_DEPLOYMENT_TARGET=10.14
             LDFLAGS="-L/opt/homebrew/opt/libomp/lib -L/opt/homebrew/opt/llvm/lib"
             CPPFLAGS="-I/opt/homebrew/opt/libomp/include -I/opt/homebrew/opt/llvm/include"
-            PATH="/opt/homebrew/opt/llvm/bin:$PATH"
+            CC="/opt/homebrew/opt/llvm/bin/clang -Xpreprocessor -fopenmp"
+            CXX="/opt/homebrew/opt/llvm/bin/clang++ -Xpreprocessor -fopenmp"
+            CMAKE_PREFIX_PATH="/opt/homebrew/opt/libomp:/opt/homebrew/opt/llvm"
 
           
           # macOS dependencies (using Homebrew and conda)
