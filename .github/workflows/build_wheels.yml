@@ -35,13 +35,22 @@ jobs:
           
           # macOS-specific settings
           CIBW_ARCHS_MACOS: "x86_64 arm64"
-          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=10.14"
+          CIBW_ENVIRONMENT_MACOS: >
+            MACOSX_DEPLOYMENT_TARGET=10.14
+            CC=/usr/local/opt/llvm/bin/clang 
+            CXX=/usr/local/opt/llvm/bin/clang++ 
+            CFLAGS='-Xpreprocessor -fopenmp' 
+            CXXFLAGS='-Xpreprocessor -fopenmp' 
+            LDFLAGS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' 
+            CMAKE_PREFIX_PATH='/usr/local/opt/llvm'
+          
+
           
           # macOS dependencies (using Homebrew and conda)
           CIBW_BEFORE_ALL_MACOS: >
             brew install boost &&
-            brew install cmake &&
             brew install eigen &&
+            brew install llvm libomp &&
             curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh &&
             bash Miniconda3-latest-MacOSX-x86_64.sh -b -p $HOME/miniconda &&
             export PATH=$HOME/miniconda/bin:$PATH &&
