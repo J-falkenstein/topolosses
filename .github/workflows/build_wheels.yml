@@ -37,12 +37,6 @@ jobs:
           CIBW_ARCHS_MACOS: "x86_64 arm64"
           CIBW_ENVIRONMENT_MACOS: >
             MACOSX_DEPLOYMENT_TARGET=10.14
-            CC=/usr/local/opt/llvm/bin/clang 
-            CXX=/usr/local/opt/llvm/bin/clang++ 
-            CFLAGS='-Xpreprocessor -fopenmp' 
-            CXXFLAGS='-Xpreprocessor -fopenmp' 
-            LDFLAGS='-L/usr/local/opt/llvm/lib -Wl,-rpath,/usr/local/opt/llvm/lib' 
-            CMAKE_PREFIX_PATH='/usr/local/opt/llvm'
           
 
           
