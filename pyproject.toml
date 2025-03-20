@@ -32,9 +32,11 @@ Repository = "https://github.com/J-falkenstein/topolosses"
 [tool.scikit-build]
 wheel.packages = ["topolosses"]
 
+
+## TODO all these settings can also be set by yml file env variables
+# this is only for a local build on linux machine
 [tool.cibuildwheel]
 # currently this only creates x86_64 arch wheels
-# for extension it is easier to use github actions to avoid cross-compilling and emulation
 # these are overridden by the env varibales set in github action
 archs = ["native"]
 manylinux-x86_64-image = "manylinux_2_28"

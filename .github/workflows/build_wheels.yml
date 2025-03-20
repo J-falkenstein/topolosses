@@ -5,8 +5,11 @@ on:
 
 jobs:
   build_wheels:
-    name: Build wheels on Linux
-    runs-on: ubuntu-latest
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
     
     steps:
       - uses: actions/checkout@v4
@@ -24,11 +27,29 @@ jobs:
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
-          CIBW_SKIP: "*-musllinux*"
-          CIBW_ARCHS: "x86_64"
+          # Skip musllinux and PyPy on macOS (PyPy has limited macOS support)
+          CIBW_SKIP: "*-musllinux* pp*-macosx*"
+          
+          # Linux-specific settings
+          CIBW_ARCHS_LINUX: "x86_64"
+          
+          # macOS-specific settings
+          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=10.14"
+          
+          # macOS dependencies (using Homebrew and conda)
+          CIBW_BEFORE_ALL_MACOS: >
+            brew install boost &&
+            brew install cmake &&
+            brew install eigen &&
+            curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh &&
+            bash Miniconda3-latest-MacOSX-x86_64.sh -b -p /usr/local/miniconda &&
+            export PATH=/usr/local/miniconda/bin:$PATH &&
+            conda init bash &&
+            conda install -y -c conda-forge opencv
       
       - name: Upload wheels as artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: wheels
+          name: wheels-${{ matrix.os }}
           path: ./wheelhouse/*.whl
