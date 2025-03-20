@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "topolosses"
-version = "0.1.0"
+version = "0.1.1"
 description = "A collection of losses and metrics for topology-preserving image segmentation."
 readme = "topolosses/README.md"
 authors = [
@@ -33,27 +33,21 @@ Repository = "https://github.com/J-falkenstein/topolosses"
 wheel.packages = ["topolosses"]
 
 [tool.cibuildwheel]
-build = ["*-manylinux_*"]
-skip = ["*-manylinux_i686"]
-
+# currently this only creates x86_64 arch wheels
+# for extension it is easier to use github actions to avoid cross-compilling and emulation
+archs = ["native"]
 manylinux-x86_64-image = "manylinux_2_28"
-manylinux-aarch64-image = "manylinux_2_28"
-manylinux-ppc64le-image = "manylinux_2_28"
-manylinux-s390x-image = "manylinux_2_28"
 
 [tool.cibuildwheel.linux]
-
-# TODO adjust to other architectures
 before-all = [
     "yum install -y boost-devel python3-devel",
     "pip install 'pybind11[global]'",
-    "curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh",
-    "bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/miniconda",
+    "ARCH=$(uname -m) && curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${ARCH}.sh",
+    "bash Miniconda3-latest-Linux-*.sh -b -p /opt/miniconda",
     "export PATH=/opt/miniconda/bin:$PATH",
     "conda init bash",
-    "source ~/.bashrc",
-    "conda install -y -c conda-forge opencv",
-    "conda install -y anaconda::eigen",
-    ]
+    "/opt/miniconda/bin/conda install -y -c conda-forge opencv",
+    "/opt/miniconda/bin/conda install -y anaconda::eigen",
+]
 # opencv can be bundled into the wheel afterwards with auditwheel repair (for this the needed libraries need to be installed locally)
-repair-wheel-command = "LD_LIBRARY_PATH=/opt/miniconda/lib:$LD_LIBRARY_PATH auditwheel repair --plat manylinux_2_34_x86_64 -w {dest_dir} {wheel}"
+repair-wheel-command = "ARCH=$(uname -m) && LD_LIBRARY_PATH=/opt/miniconda/lib:$LD_LIBRARY_PATH auditwheel repair --plat manylinux_2_34_$ARCH -w {dest_dir} {wheel}"

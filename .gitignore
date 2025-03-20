@@ -24,7 +24,7 @@ var/
 .installed.cfg
 *.egg
 external/
-wheelhouse/
+wheelhouse*/
 
 
 # Installer logs
