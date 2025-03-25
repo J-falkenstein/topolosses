@@ -13,18 +13,19 @@ authors = [
 classifiers=[
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
-        # TODO add more classifiers
+        # TODO: add more classifiers
 ]
 requires-python = ">=3.8"
-# these are downloaded and installed beforehand
+
+# These dependencies will be installed automatically when installing `topolosses`.
 dependencies = [
     "torch>=1.9", 
     "scipy",
     "numpy"
 ]
-# other libraries
-# eigen3, boost are header only libraries and are not needed later on
-# opencv can be bundled into the wheel afterwards with auditwheel repair (for this the needed libraries need to be installed locally) and needs pip install patchelf.
+# Additional Libraries:
+# - `eigen3` and `boost` are header-only and don't require installation.  
+# - `opencv` is bundled into the wheel with `auditwheel repair` for system compatibility.  
 
 [project.urls]
 Repository = "https://github.com/J-falkenstein/topolosses"
@@ -33,11 +34,9 @@ Repository = "https://github.com/J-falkenstein/topolosses"
 wheel.packages = ["topolosses"]
 
 
-## TODO all these settings can also be set by yml file env variables
+# TODO: these settings can overwritten by yml file when building in github actions
 # this is only for a local build on linux machine
 [tool.cibuildwheel]
-# currently this only creates x86_64 arch wheels
-# these are overridden by the env varibales set in github action
 archs = ["native"]
 manylinux-x86_64-image = "manylinux_2_28"
 
@@ -52,5 +51,6 @@ before-all = [
     "/opt/miniconda/bin/conda install -y -c conda-forge opencv",
     "/opt/miniconda/bin/conda install -y anaconda::eigen",
 ]
-# opencv can be bundled into the wheel afterwards with auditwheel repair (for this the needed libraries need to be installed locally)
+
+# repair wheel to bundle c++ library dependencies into the wheel (e.g., openCV)
 repair-wheel-command = "ARCH=$(uname -m) && LD_LIBRARY_PATH=/opt/miniconda/lib:$LD_LIBRARY_PATH auditwheel repair --plat manylinux_2_34_$ARCH -w {dest_dir} {wheel}"

@@ -1,3 +1,11 @@
+# Setup script for building the Topograph C++ extension module locally.
+# 
+# Requirements:
+# This script assumes that the following dependencies are installed via Conda:
+# - OpenCV: https://anaconda.org/conda-forge/opencv
+# - Eigen: https://anaconda.org/anaconda/eigen (header-only)
+# - Boost: https://anaconda.org/conda-forge/boost (header-only)
+
 from glob import glob
 from setuptools import setup
 from pybind11.setup_helpers import Pybind11Extension, build_ext
@@ -8,8 +16,6 @@ __version__ = "1.0.0"
 conda_prefix = os.getenv("CONDA_PREFIX")
 print(conda_prefix)
 extra_compile_args = sysconfig.get_config_var("CFLAGS").split()
-# eigen_path = os.path.abspath(os.path.join(".", "eigen4"))
-# print("Eigen path:", eigen_path)
 
 ext_modules = [
     Pybind11Extension(

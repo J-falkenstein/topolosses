@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.15)
 project(topolosses)
 
+
+# TODO these could probably be set by env varibale in yml or toml file
 list(APPEND CMAKE_PREFIX_PATH "/opt/miniconda")
 list(APPEND CMAKE_PREFIX_PATH "/home/computacenter/miniconda3")
 list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/opt/libomp:/opt/homebrew/opt/llvm")

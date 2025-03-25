@@ -9,21 +9,24 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest]
+        os: [macos-latest, linux-latest]
     
     steps:
+      # Step 1: Checkout the repository
       - uses: actions/checkout@v4
       
+      # Step 2: Set up Python environment for calling cibuildwheel 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
-          
+      
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install cibuildwheel
-          
+      
+      # Step 3: Build wheels using cibuildwheel
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
@@ -44,8 +47,11 @@ jobs:
           # CXX="/opt/homebrew/opt/llvm/bin/clang++ -Xpreprocessor -fopenmp"
           # CMAKE_PREFIX_PATH="/opt/homebrew/opt/libomp:/opt/homebrew/opt/llvm"
 
-          
-          # macOS dependencies (using Homebrew and conda)
+
+          # macOS-specific dependencies and environment setup (Work in Progress)
+          # TODO: Fix the issue with <bits/stdc++.h> header not supported by Clang.
+          # Attempting to install GCC 13 but encountering path issues.
+          # May require additional adjustments to compiler environment variables.
           CIBW_BEFORE_ALL_MACOS: >
             brew install boost &&
             brew install eigen &&
@@ -63,6 +69,7 @@ jobs:
             echo "Found OpenCV at: $OpenCV_DIR" &&
             $HOME/miniconda/bin/conda install -y -c conda-forge opencv
       
+      # Step 4: Upload generated wheels as workflow artifacts
       - name: Upload wheels as artifacts
         uses: actions/upload-artifact@v4
         with:
