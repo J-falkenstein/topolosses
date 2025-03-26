@@ -1,5 +1,5 @@
 # Setup script for building the Topograph C++ extension module locally.
-# 
+#
 # Requirements:
 # This script assumes that the following dependencies are installed via Conda:
 # - OpenCV: https://anaconda.org/conda-forge/opencv
@@ -20,7 +20,7 @@ extra_compile_args = sysconfig.get_config_var("CFLAGS").split()
 ext_modules = [
     Pybind11Extension(
         "Topograph",
-        sorted(glob("ext/*.cpp")), 
+        sorted(glob("*.cpp")),
         include_dirs=[
             os.path.join(conda_prefix, "include", "opencv4"),
             os.path.join(conda_prefix, "include", "eigen3"),

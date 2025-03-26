@@ -56,7 +56,7 @@ class CLDiceLoss(_Loss):
 
         if sum([sigmoid, softmax]) > 1:
             raise ValueError(
-                "At most one of [sigmoid, softmax, convert_to_one_vs_rest] can be set to True. "
+                "At most one of [sigmoid, softmax] can be set to True. "
                 "You can only choose one of these options at a time or none if you already pass probabilites."
             )
 
@@ -133,7 +133,12 @@ class CLDiceLoss(_Loss):
         reduce_axis: List[int] = [0] * self.batch + list(range(2, len(input.shape)))
 
         if self.alpha < 1 and self.use_base_loss and self.base_loss is None:
-            base_loss = compute_default_dice_loss(input, target, reduce_axis, self.smooth,)
+            base_loss = compute_default_dice_loss(
+                input,
+                target,
+                reduce_axis,
+                self.smooth,
+            )
 
         cl_dice = torch.tensor(0.0)
         if self.alpha > 0:
@@ -145,9 +150,7 @@ class CLDiceLoss(_Loss):
                 reduce_axis,
             )
 
-        total_loss = (
-            cl_dice if not self.use_base_loss else base_loss + self.alpha * cl_dice
-        )
+        total_loss = cl_dice if not self.use_base_loss else base_loss + self.alpha * cl_dice
 
         return total_loss  # , {"base": (1 - self.alpha) * base_loss, "cldice": self.alpha * cl_dice}
 

@@ -50,12 +50,10 @@ class AggregationType(enum.Enum):
     RMS = "rms"
     LEG = "leg"
 
-
 class ThresholdDistribution(enum.Enum):
     UNIFORM = "uniform"
     GAUSSIAN = "gaussian"
     NONE = "none"
-
 
 def new_compute_diffs(paired_img_batch: torch.Tensor):
     h_diff = paired_img_batch[:, :-1, :] - paired_img_batch[:, 1:, :]
@@ -63,7 +61,6 @@ def new_compute_diffs(paired_img_batch: torch.Tensor):
     h_diff = h_diff != 0
     v_diff = v_diff != 0
     return h_diff, v_diff
-
 
 def new_compute_diag_diffs(paired_img_batch: torch.Tensor, th: int = 11):
     weight = torch.tensor([[1, -1], [-1, 1]], device=paired_img_batch.device).unsqueeze(0).unsqueeze(0)
@@ -77,7 +74,6 @@ def new_compute_diag_diffs(paired_img_batch: torch.Tensor, th: int = 11):
 
     return diagr, diagl, special_case_r, special_case_l
 
-
 def fill_adj_matr(adj_matrix, h_edges, v_edges):
     adj_matrix[tuple(h_edges)] = True
     adj_matrix[tuple(h_edges[::-1])] = True  # Add the transposed edges
@@ -88,3 +84,9 @@ def fill_adj_matr(adj_matrix, h_edges, v_edges):
     np.fill_diagonal(adj_matrix, False)
 
     return adj_matrix
+
+# TODO Check if only used in betti matchin if so move accordingly 
+class FiltrationType(enum.Enum):
+    SUPERLEVEL = "superlevel"
+    SUBLEVEL = "sublevel"
+    BOTHLEVELS = "bothlevels"

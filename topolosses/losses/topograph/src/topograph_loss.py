@@ -14,7 +14,7 @@ from torch.nn.modules.loss import _Loss
 import torch.multiprocessing as mp
 
 # C++ implementation Topograph, can be installed locally as own package with the setup file 
-# during the build process for the distribution file a similar package is build using the cmake file. The important statement stays the same
+# during the build process for the distribution file a similar package is build using the cmake file. 
 #import Topograph
 from . import _topograph
 
@@ -27,7 +27,6 @@ from ...utils import (
 )
 from scipy.ndimage import label
 from scipy.cluster.hierarchy import DisjointSet
-import timeit
 from ...utils import compute_default_dice_loss
 
 
