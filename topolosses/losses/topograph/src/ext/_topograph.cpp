@@ -7,6 +7,8 @@
 namespace py = pybind11;
 using namespace pybind11::literals;
 
+// needs to be changed to Topograph when installing locally 
+// TODO align name of lcoal build and complete topolosses build
 PYBIND11_MODULE(_topograph, m) {
     m.doc() = "Highly Efficient C++ Topograph implementation"; // optional module docstring
 

@@ -1,4 +1,6 @@
 from __future__ import annotations
+import warnings
+from typing import List, Optional
 
 import enum
 import torch
@@ -7,196 +9,22 @@ from functools import partial
 import numpy as np
 
 # from monai.losses.dice import DiceLoss
-import sys
-import os
+import sys, os
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(current_dir, "src/ext/Betti-Matching-3D/build"))
+sys.path.append(os.path.join(current_dir, "ext/Betti-Matching-3D/build"))
 import betti_matching  # C++ Implementation
 
 # from losses.dice_losses import Multiclass_CLDice
 from ...utils import compute_default_dice_loss
-from losses.utils import FiltrationType, ActivationType, DiceType
-
-from losses.utils import convert_to_one_vs_rest
+from ...utils import FiltrationType
 
 
-class FastMulticlassBettiMatchingLoss(_Loss):
+class BettiMatchingLoss(_Loss):
+    """TODO"""
+
     def __init__(
         self,
-        filtration_type: FiltrationType = FiltrationType.SUPERLEVEL,
-        num_processes: int = 1,
-        convert_to_one_vs_rest: bool = True,
-        softmax: bool = False,
-        ignore_background: bool = False,
-        push_unmatched_to_1_0: bool = False,
-        barcode_length_threshold: float = 0.0,
-        topology_weights: tuple[float, float] = (1, 1),
-        sphere: bool = False,
-    ) -> None:
-        super().__init__()
-        if not softmax and not convert_to_one_vs_rest:
-            raise ValueError("If softmax is False, convert_to_one_vs_rest must be True")
-        if softmax and convert_to_one_vs_rest:
-            raise ValueError(
-                "If softmax is True, convert_to_one_vs_rest must be False. One vs rest is already handled by softmax."
-            )
-
-        self.softmax = softmax
-        self.convert_to_one_vs_rest = convert_to_one_vs_rest
-        self.ignore_background = ignore_background
-
-        self.BMLoss = FastBettiMatchingLoss(
-            activation=ActivationType.NONE,
-            filtration_type=filtration_type,
-            num_processes=num_processes,
-            push_unmatched_to_1_0=push_unmatched_to_1_0,
-            barcode_length_threshold=barcode_length_threshold,
-            topology_weights=topology_weights,
-            sphere=sphere,
-        )
-
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> tuple[torch.Tensor, list[torch.Tensor]]:
-
-        if self.softmax:
-            input = torch.softmax(input, dim=1)
-
-        if self.convert_to_one_vs_rest:
-            input = convert_to_one_vs_rest(input.clone())
-
-        if self.ignore_background:
-            input = input[:, 1:]
-            target = target[:, 1:]
-
-        # Flatten out channel dimension to treat each channel as a separate instance
-        input = torch.flatten(input, start_dim=0, end_dim=1).unsqueeze(1)
-        converted_target = torch.flatten(target, start_dim=0, end_dim=1).unsqueeze(1)
-
-        # Compute Betti matching loss
-        bm_loss, losses = self.BMLoss(input, converted_target)
-
-        return bm_loss, losses
-
-
-class FastMulticlassDiceBettiMatchingLoss(_Loss):
-    def __init__(
-        self,
-        filtration_type: FiltrationType = FiltrationType.SUPERLEVEL,
-        dice_type: DiceType = DiceType.CLDICE,
-        num_processes: int = 1,
-        convert_to_one_vs_rest: bool = False,
-        cldice_alpha: float = 0.5,
-        ignore_background: bool = False,
-        push_unmatched_to_1_0: bool = False,
-        barcode_length_threshold: float = 0.0,
-        topology_weights: tuple[float, float] = (1, 1),
-        sphere: bool = False,
-    ) -> None:
-        super().__init__()
-
-        if dice_type == DiceType.DICE:
-            self.DiceLoss = Multiclass_CLDice(
-                softmax=not convert_to_one_vs_rest,
-                include_background=True,
-                smooth=1e-5,
-                alpha=0.0,
-                convert_to_one_vs_rest=convert_to_one_vs_rest,
-                batch=True,
-            )
-        elif dice_type == DiceType.CLDICE:
-            self.DiceLoss = Multiclass_CLDice(
-                softmax=not convert_to_one_vs_rest,
-                include_background=True,
-                smooth=1e-5,
-                alpha=cldice_alpha,
-                iter_=5,
-                convert_to_one_vs_rest=convert_to_one_vs_rest,
-                batch=True,
-            )
-        else:
-            raise ValueError(f"Invalid dice type: {dice_type}")
-
-        self.MulticlassBMLoss = FastMulticlassBettiMatchingLoss(
-            filtration_type=filtration_type,
-            num_processes=num_processes,
-            convert_to_one_vs_rest=convert_to_one_vs_rest,
-            softmax=not convert_to_one_vs_rest,
-            push_unmatched_to_1_0=push_unmatched_to_1_0,
-            ignore_background=ignore_background,
-            barcode_length_threshold=barcode_length_threshold,
-            topology_weights=topology_weights,
-            sphere=sphere,
-        )
-
-    def forward(
-        self,
-        input: torch.Tensor,
-        target: torch.Tensor,
-        alpha: float = 0.5,
-    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        # Compute multiclass BM losses
-        if alpha > 0:
-            bm_loss, losses = self.MulticlassBMLoss(input, target)
-            losses = {"single_matches": losses}
-        else:
-            bm_loss = torch.zeros(1, device=input.device)
-            losses = {}
-
-        # Multiclass Dice loss
-        dice_loss, dic = self.DiceLoss(input, target)
-
-        losses["dice"] = dic["dice"]
-        losses["cldice"] = dic["cldice"]
-        losses["bm"] = alpha * bm_loss.item()
-
-        return dice_loss + alpha * bm_loss, losses
-
-
-class FastDiceBettiMatchingLoss(_Loss):
-    def __init__(
-        self,
-        alpha: float = 0.5,
-        activation: ActivationType = ActivationType.SIGMOID,
-        filtration_type: FiltrationType = FiltrationType.SUPERLEVEL,
-        num_processes: int = 1,
-        push_unmatched_to_1_0: bool = False,
-        barcode_length_threshold: float = 0.0,
-        sphere: bool = False,
-    ) -> None:
-        super().__init__()
-        self.alpha = alpha
-
-        if activation == ActivationType.SIGMOID:
-            self.activation = torch.sigmoid
-        elif activation == ActivationType.SOFTMAX:
-            self.activation = partial(torch.softmax, dim=1)
-        else:
-            self.activation = None
-
-        self.DiceLoss = DiceLoss(sigmoid=False)
-        self.BMLoss = FastBettiMatchingLoss(
-            activation=ActivationType.NONE,
-            filtration_type=filtration_type,
-            num_processes=num_processes,
-            push_unmatched_to_1_0=push_unmatched_to_1_0,
-            barcode_length_threshold=barcode_length_threshold,
-            sphere=sphere,
-        )
-
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> tuple[torch.Tensor, list[torch.Tensor]]:
-        if self.activation is not None:
-            input = self.activation(input)
-
-        bm_loss, losses = self.BMLoss(input, target)
-        dice_loss = self.DiceLoss(input, target)
-
-        return dice_loss + self.alpha * bm_loss, losses
-
-
-class FastBettiMatchingLoss(_Loss):
-    def __init__(
-        self,
-        activation: ActivationType = ActivationType.SIGMOID,
         filtration_type: FiltrationType = FiltrationType.SUPERLEVEL,
         num_processes: int = 1,
         push_unmatched_to_1_0: bool = False,
@@ -204,44 +32,136 @@ class FastBettiMatchingLoss(_Loss):
         topology_weights: tuple[float, float] = (
             1.0,
             1.0,
-        ),  # weights for the topology classes in the following order: [matched, unmatched_pred, unmatched_target]
+        ),
         sphere: bool = False,
+        include_background: bool = False,
+        alpha: float = 0.1,
+        softmax: bool = False,
+        sigmoid: bool = False,
+        use_base_loss: bool = True,
+        base_loss: Optional[_Loss] = None,
     ) -> None:
-        super().__init__()
-        self.filtration_type = filtration_type
-        self.num_processes = num_processes
-        self.push_unmatched_to_1_0 = push_unmatched_to_1_0
-        self.barcode_length_threshold = barcode_length_threshold
+        """
+        Args:
+            TODO
+            topology_weight: TODO weights for the topology classes in the following order: [matched, unmatched_pred, unmatched_target]
+            include_background (bool): If `True`, includes the background class in the topograph computation.
+                Background inclusion in the base loss component should be controlled independently.
+            alpha (float): Weighting factor for the topograph loss component. Is only applied if a base loss is used. Defaults to 0.1.
+            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
+                Typically used for binary segmentation. Defaults to `False`.
+            softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
+                This is useful for multi-class segmentation tasks. Defaults to `False`.
+                For other activation functions set sigmoid and softmax to false and apply the transformation before passing inputs to the loss.
+            use_base_component (bool): if false the loss only consists of the Topograph component.
+                A forward call will return the full Topograph component.
+                base_loss, weights, and alpha will be ignored if this flag is set to false.
+            base_loss (_Loss, optional): The base loss function to be used alongside the Topograph loss.
+                Defaults to `None`, meaning a Dice component with default parameters will be used.  .
 
+        Raises:
+            ValueError: If more than one of [sigmoid, softmax] is set to True.
+            ValueError: If topology_weights is not a list of lenght 2
+        """
+        if sum([sigmoid, softmax]) > 1:
+            raise ValueError(
+                "At most one of [sigmoid, softmax] can be set to True. "
+                "You can only choose one of these options at a time or none if you already pass probabilites."
+            )
         if len(topology_weights) != 2:
             raise ValueError(
                 "Topology weights must be a list of length 2, where the first element is the weight for matched pairs and the second for unmatched pairs in the prediction."
             )
 
+        super(BettiMatchingLoss, self).__init__()
+
+        self.filtration_type = filtration_type
+        self.num_processes = num_processes
+        self.push_unmatched_to_1_0 = push_unmatched_to_1_0
+        self.barcode_length_threshold = barcode_length_threshold
+        self.include_background = include_background
         self.topology_weights = topology_weights
         self.sphere = sphere
+        self.alpha = alpha
+        self.softmax = softmax
+        self.sigmoid = sigmoid
+        self.use_base_loss = use_base_loss
+        self.base_loss = base_loss
 
-        if activation == ActivationType.SIGMOID:
-            self.activation = torch.sigmoid
-        elif activation == ActivationType.SOFTMAX:
-            self.activation = partial(torch.softmax, dim=1)
-        else:
-            self.activation = None
+        if not self.use_base_loss:
+            if base_loss is not None:
+                warnings.warn("base_loss is ignored beacuse use_base_component is set to false")
+            if self.alpha != 1:
+                warnings.warn("Alpha < 1 has no effect when no base component is used.")
 
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> tuple[torch.Tensor, list[torch.Tensor]]:
-        if self.activation is not None:
-            input = self.activation(input)
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """Calculates the forward pass of the betti matching loss.
 
+        Args:
+            input (Tensor): Input tensor of shape (batch_size, num_classes, H, W).
+            target (Tensor): Target tensor of shape (batch_size, num_classes, H, W).
+
+        Returns:
+            Tensor: The calculated betti matching loss.
+
+        Raises:
+            ValueError: If the shape of the ground truth is different from the input shape.
+            ValueError: If softmax=True and the number of channels for the prediction is 1.
+
+        """
+        if target.shape != input.shape:
+            raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
+
+        starting_class = 0 if self.include_background else 1
+        num_classes = input.shape[1]
+
+        if num_classes == 1:
+            if self.softmax:
+                raise ValueError(
+                    "softmax=True requires multiple channels for class probabilities, but received a single-channel input."
+                )
+            if not self.include_background:
+                warnings.warn(
+                    "Single-channel prediction detected. The `include_background=False` setting  will be ignored."
+                )
+                starting_class = 0
+
+        # Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
+        # These settings have to be controlled by the user when initializing the base loss function
+        base_loss = torch.tensor(0.0)
+        if self.alpha < 1 and self.use_base_loss and self.base_loss is not None:
+            base_loss = self.base_loss(input, target)
+
+        if self.sigmoid:
+            input = torch.sigmoid(input)
+        elif self.softmax:
+            input = torch.softmax(input, 1)
+
+        if self.alpha < 1 and self.use_base_loss and self.base_loss is None:
+            base_loss = compute_default_dice_loss(input, target)
+
+        betti_matching_loss = torch.tensor(0.0)
+        if self.alpha > 0:
+            betti_matching_loss = self._compute_batched_betti_matching_loss(
+                input[:, starting_class:].float(),
+                target[:, starting_class:].float(),
+            )
+
+        total_loss = betti_matching_loss if not self.use_base_loss else base_loss + self.alpha * betti_matching_loss
+
+        return total_loss
+
+    def _compute_batched_betti_matching_loss(
+        self, input: torch.Tensor, target: torch.Tensor
+    ) -> tuple[torch.Tensor, list[torch.Tensor]]:
+        """TODO"""
+        # Flatten out channel dimension to treat each channel as a separate instance for multiclass prediction
+        input = torch.flatten(input, start_dim=0, end_dim=1).unsqueeze(1)
+        target = torch.flatten(target, start_dim=0, end_dim=1).unsqueeze(1)
         if self.sphere:
             # add padding of 1 to all sides of the spatial dimensions with correct predicted background
             input = torch.nn.functional.pad(input, (1, 1, 1, 1), mode="constant", value=0)
             target = torch.nn.functional.pad(target, (1, 1, 1, 1), mode="constant", value=0)
-
-        return self._compute_batched_loss(input, target)
-
-    def _compute_batched_loss(
-        self, input: torch.Tensor, target: torch.Tensor
-    ) -> tuple[torch.Tensor, list[torch.Tensor]]:
         if self.filtration_type == FiltrationType.SUPERLEVEL:
             # Using (1 - ...) to allow binary sorting optimization on the label, which expects values [0, 1]
             input = 1 - input
@@ -250,6 +170,7 @@ class FastBettiMatchingLoss(_Loss):
             # Just duplicate the number of elements in the batch, once with sublevel, once with superlevel
             input = torch.concat([input, 1 - input])
             target = torch.concat([target, 1 - target])
+
         split_indices = np.arange(self.num_processes, input.shape[0], self.num_processes)
         predictions_list_numpy = np.split(input.detach().cpu().numpy().astype(np.float64), split_indices)
         targets_list_numpy = np.split(target.detach().cpu().numpy().astype(np.float64), split_indices)
@@ -269,7 +190,10 @@ class FastBettiMatchingLoss(_Loss):
                 all(a.data.contiguous for a in predictions_cpu_batch)
                 and all(a.data.contiguous for a in targets_cpu_batch)
             ):
-                print("WARNING! Non-contiguous arrays encountered. Shape:", predictions_cpu_batch[0].shape)
+                warnings.warn(
+                    f"WARNING! Non-contiguous arrays encountered. Shape: {predictions_cpu_batch[0].shape}",
+                    RuntimeWarning,
+                )
                 global ENCOUNTERED_NONCONTIGUOUS
                 ENCOUNTERED_NONCONTIGUOUS = True
             predictions_cpu_batch = [np.ascontiguousarray(a) for a in predictions_cpu_batch]
@@ -303,7 +227,7 @@ class FastBettiMatchingLoss(_Loss):
         target: torch.Tensor,  # *spatial_dimensions
         betti_matching_result: betti_matching.return_types.BettiMatchingResult,
     ) -> torch.Tensor:  # one_dimension
-
+        """TODO"""
         # Combine all birth and death coordinates from prediction and target into one array
         (
             prediction_matches_birth_coordinates,
@@ -315,16 +239,16 @@ class FastBettiMatchingLoss(_Loss):
         ) = [
             (
                 torch.tensor(array, device=prediction.device, dtype=torch.long)
-                if array.strides[-1] > 0
+                if len(array) > 0  # Changed from array.strides[-1] > 0
                 else torch.zeros(0, len(prediction.shape), device=prediction.device, dtype=torch.long)
             )
             for array in [
-                betti_matching_result.prediction_matches_birth_coordinates,
-                betti_matching_result.prediction_matches_death_coordinates,
-                betti_matching_result.target_matches_birth_coordinates,
-                betti_matching_result.target_matches_death_coordinates,
-                betti_matching_result.prediction_unmatched_birth_coordinates,
-                betti_matching_result.prediction_unmatched_death_coordinates,
+                betti_matching_result.input1_matched_birth_coordinates,
+                betti_matching_result.input1_matched_death_coordinates,
+                betti_matching_result.input2_matched_birth_coordinates,
+                betti_matching_result.input2_matched_death_coordinates,
+                betti_matching_result.input1_unmatched_birth_coordinates,
+                betti_matching_result.input1_unmatched_death_coordinates,
             ]
         ]
 
@@ -362,10 +286,10 @@ class FastBettiMatchingLoss(_Loss):
         # (M, 2) tensor of unmatched persistence pairs for target
         target_unmatched_pairs = torch.stack(
             [
-                target[tuple(coords[:, i] for i in range(coords.shape[1]))]
+                target[tuple(coords[i] for i in range(len(coords[0])) if len(coords) > 0)]
                 for coords in [
-                    betti_matching_result.target_unmatched_birth_coordinates,
-                    betti_matching_result.target_unmatched_death_coordinates,
+                    betti_matching_result.input2_unmatched_birth_coordinates,
+                    betti_matching_result.input2_unmatched_death_coordinates,
                 ]
             ],
             dim=1,

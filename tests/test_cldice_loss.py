@@ -121,7 +121,7 @@ TEST_CASES = [
 
 class TestDiceCLDiceLoss(unittest.TestCase):
     @parameterized.expand(TEST_CASES)
-    def test_result_DiceCLDice(self, input_param, input_data, expected_val):
+    def test_result(self, input_param, input_data, expected_val):
         result = CLDiceLoss(**input_param).forward(**input_data)
         np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val, rtol=1e-5)
 

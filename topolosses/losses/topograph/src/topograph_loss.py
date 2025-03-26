@@ -13,10 +13,11 @@ import torch.nn.functional as F
 from torch.nn.modules.loss import _Loss
 import torch.multiprocessing as mp
 
-# C++ implementation Topograph, can be installed locally as own package with the setup file 
-# during the build process for the distribution file a similar package is build using the cmake file. 
-#import Topograph
-from . import _topograph
+# C++ implementation Topograph, can be installed locally as own package with the setup file
+# during the build process for the distribution file a similar package is build using the cmake file.
+import Topograph as _topograph
+
+# from . import _topograph
 
 from ...utils import (
     AggregationType,
@@ -560,6 +561,7 @@ class TopographLoss(_Loss):
                 Typically used for binary segmentation. Defaults to `False`.
             softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
                 This is useful for multi-class segmentation tasks. Defaults to `False`.
+                For other activation functions set sigmoid and softmax to false and apply the transformation before passing inputs to the loss.
             use_base_component (bool): if false the loss only consists of the Topograph component.
                 A forward call will return the full Topograph component.
                 base_loss, weights, and alpha will be ignored if this flag is set to false.
@@ -597,9 +599,7 @@ class TopographLoss(_Loss):
             if base_loss is not None:
                 warnings.warn("base_loss is ignored beacuse use_base_component is set to false")
             if self.alpha != 1:
-                warnings.warn(
-                    "Alpha < 1 has no effect when no base component is used."
-                )
+                warnings.warn("Alpha < 1 has no effect when no base component is used.")
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """Calculates the forward pass of the topograph loss.
@@ -651,9 +651,7 @@ class TopographLoss(_Loss):
         if self.alpha > 0:
             topograph_loss = self.compute_topopgraph_loss(input.float(), target.float(), starting_class, num_classes)
 
-        total_loss= (
-            topograph_loss if not self.use_base_loss else base_loss + self.alpha * topograph_loss
-        )
+        total_loss = topograph_loss if not self.use_base_loss else base_loss + self.alpha * topograph_loss
 
         return total_loss
 
