@@ -14,7 +14,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from topolosses.losses import BettiMatchingLoss
 from topolosses.losses import DiceLoss
 
-from losses_original.betti_losses import FastBettiMatchingLoss
+from losses_original.betti_losses import FastBettiMatchingLoss, FastMulticlassBettiMatchingLoss
 
 
 def transform(tensor, num_classes=2):
@@ -25,7 +25,7 @@ def transform(tensor, num_classes=2):
 TEST_CASES = [
     [
         # shape [1, 5, 5]
-        {"use_base_loss": False, "alpha": 1},
+        {"use_base_loss": False, "alpha": 1, "include_background": True},
         {
             "input": transform(
                 torch.tensor(
@@ -89,40 +89,7 @@ TEST_CASES = [
         0,
     ],
     [
-        {"use_base_loss": False, "alpha": 1},
-        {
-            "input": transform(
-                torch.tensor(
-                    [
-                        [
-                            [0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 1.0, 0.0, 0.0],
-                            [0.0, 1.0, 0.0, 1.0, 0.0],
-                            [0.0, 0.0, 1.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0],
-                        ]
-                    ]
-                )
-            ),
-            "target": transform(
-                torch.tensor(
-                    [
-                        [
-                            [0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 1.0, 1.0, 0.0],
-                            [0.0, 1.0, 0.0, 1.0, 0.0],
-                            [0.0, 1.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0],
-                        ]
-                    ]
-                )
-            ),
-        },
-        0,
-    ],
-    [
-        # shape [1, 6, 6]
-        {"use_base_loss": False, "alpha": 1},
+        {"use_base_loss": False, "alpha": 1, "include_background": True},
         {
             "input": transform(
                 torch.tensor(
@@ -156,43 +123,7 @@ TEST_CASES = [
         1,
     ],
     [
-        {"use_base_loss": False, "alpha": 1},
-        {
-            "input": transform(
-                1
-                - torch.tensor(
-                    [
-                        [
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        ]
-                    ]
-                )
-            ),
-            "target": transform(
-                1
-                - torch.tensor(
-                    [
-                        [
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 1.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                        ]
-                    ]
-                )
-            ),
-        },
-        1,
-    ],
-    [
-        {"use_base_loss": False, "alpha": 1},
+        {"use_base_loss": False, "alpha": 1, "include_background": True},
         {
             "input": transform(
                 torch.tensor(
@@ -224,39 +155,7 @@ TEST_CASES = [
         0,
     ],
     [
-        {"use_base_loss": False, "alpha": 1},
-        {
-            "input": transform(
-                torch.tensor(
-                    [
-                        [
-                            [0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 1.0, 1.0, 0.0],
-                            [0.0, 1.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 1.0, 0.0],
-                        ]
-                    ]
-                )
-            ),
-            "target": transform(
-                torch.tensor(
-                    [
-                        [
-                            [0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 1.0, 0.0, 0.0],
-                            [0.0, 1.0, 1.0, 0.0, 0.0],
-                            [0.0, 1.0, 1.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0],
-                        ]
-                    ]
-                )
-            ),
-        },
-        0,
-    ],
-    [
-        {"use_base_loss": False, "alpha": 1},
+        {"use_base_loss": False, "alpha": 1, "include_background": True},
         {
             "input": transform(
                 torch.tensor(
@@ -288,62 +187,23 @@ TEST_CASES = [
             ),
         },
         0,
-    ],
-    [
-        {"use_base_loss": False, "alpha": 1},
-        {
-            "input": transform(
-                torch.tensor(
-                    [
-                        [
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                            [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                            [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-                        ]
-                    ]
-                )
-            ),
-            "target": transform(
-                torch.tensor(
-                    [
-                        [
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                            [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
-                            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-                            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
-                        ]
-                    ]
-                )
-            ),
-        },
-        1,
     ],
 ]
 
 
-# TODO use betti matching
 class TestDiceTopographLoss(unittest.TestCase):
     @parameterized.expand(TEST_CASES)
-    def test_result_DiceCLDice(self, input_param, input_data, expected_val):
-        result = BettiMatchingLoss(**input_param).forward(**input_data)
-        result_orignal = FastBettiMatchingLoss(**input_param).forward(**input_data)
-        print("comparing old with new")
-        print(result)
-        print(result_orignal)
-        # np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val, rtol=1e-5)
+    def test_result(self, input_param, input_data, expected_val):
 
-    # @parameterized.expand(TEST_CASES)
-    # def test_result_CLDice(self, input_param, input_data, expected_val):
-    #     result = TopographLoss(**input_param).forward(**input_data)
-    #     print(result.item())
-    #     expected_val = cldice_loss_orignal.Multiclass_CLDice(**input_param).forward(**input_data)
-    #     print(expected_val[0].item())
-    #     np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val[0].item(), rtol=1e-5)
+        result_original = FastMulticlassBettiMatchingLoss(ignore_background=True).forward(
+            prediction=input_data["input"], target=input_data["target"]
+        )
+        # print("old implementation:")
+        # print(result_original)
+        result = BettiMatchingLoss(**input_param).forward(**input_data)
+        # print("new implementation: ")
+        # print(result)
+        np.testing.assert_allclose(result.detach().cpu().numpy(), result_original.detach().cpu().numpy(), rtol=1e-5)
 
     def test_with_cuda(self):
         if torch.cuda.is_available():
@@ -379,12 +239,6 @@ class TestDiceTopographLoss(unittest.TestCase):
             loss = BettiMatchingLoss(use_base_loss=False, alpha=0.5)
         with self.assertWarns(Warning):
             loss = BettiMatchingLoss(use_base_loss=False, base_loss=DiceLoss())
-
-    # from test_utils import test_script_save
-    # def test_script(self):
-    #     loss = DiceTopographLoss()
-    #     test_input = torch.ones(2, 1, 8, 8)
-    #     test_script_save(loss, test_input, test_input)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,9 @@ import sys, os
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 print("current dir: ", current_dir)
-sys.path.append(os.path.join(current_dir, "..topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/build"))
+sys.path.append(
+    os.path.join(current_dir, "..topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-branch/build")
+)
 import betti_matching  # C++ Implementation
 
 import typing
@@ -31,7 +33,7 @@ class FastMulticlassBettiMatchingLoss(_Loss):
         self,
         filtration_type: FiltrationType = FiltrationType.SUPERLEVEL,
         num_processes: int = 1,
-        convert_to_one_vs_rest: bool = True,
+        convert_to_one_vs_rest: bool = False,
         softmax: bool = False,
         ignore_background: bool = False,
         push_unmatched_to_1_0: bool = False,
@@ -40,12 +42,12 @@ class FastMulticlassBettiMatchingLoss(_Loss):
         sphere: bool = False,
     ) -> None:
         super().__init__()
-        if not softmax and not convert_to_one_vs_rest:
-            raise ValueError("If softmax is False, convert_to_one_vs_rest must be True")
-        if softmax and convert_to_one_vs_rest:
-            raise ValueError(
-                "If softmax is True, convert_to_one_vs_rest must be False. One vs rest is already handled by softmax."
-            )
+        # if not softmax and not convert_to_one_vs_rest:
+        #     raise ValueError("If softmax is False, convert_to_one_vs_rest must be True")
+        # if softmax and convert_to_one_vs_rest:
+        #     raise ValueError(
+        #         "If softmax is True, convert_to_one_vs_rest must be False. One vs rest is already handled by softmax."
+        #     )
 
         self.softmax = softmax
         self.convert_to_one_vs_rest = convert_to_one_vs_rest
@@ -84,7 +86,7 @@ class FastMulticlassBettiMatchingLoss(_Loss):
         # Compute Betti matching loss
         bm_loss, losses = self.BMLoss(prediction, converted_target)
 
-        return bm_loss, losses
+        return bm_loss  # , losses
 
 
 class FastMulticlassDiceBettiMatchingLoss(_Loss):
@@ -334,16 +336,17 @@ class FastBettiMatchingLoss(_Loss):
         ) = [
             (
                 torch.tensor(array, device=prediction.device, dtype=torch.long)
-                if len(array) > 0  # Changed from array.strides[-1] > 0
+                if array.strides[-1] > 0  # if len(array) > 0  # Changed from array.strides[-1] > 0
+                # TODO why are the arrays a list of two numpy arrays now???
                 else torch.zeros(0, len(prediction.shape), device=prediction.device, dtype=torch.long)
             )
             for array in [
-                betti_matching_result.input1_matched_birth_coordinates,
-                betti_matching_result.input1_matched_death_coordinates,
-                betti_matching_result.input2_matched_birth_coordinates,
-                betti_matching_result.input2_matched_death_coordinates,
-                betti_matching_result.input1_unmatched_birth_coordinates,
-                betti_matching_result.input1_unmatched_death_coordinates,
+                betti_matching_result.prediction_matches_birth_coordinates,
+                betti_matching_result.prediction_matches_death_coordinates,
+                betti_matching_result.target_matches_birth_coordinates,
+                betti_matching_result.target_matches_death_coordinates,
+                betti_matching_result.prediction_unmatched_birth_coordinates,
+                betti_matching_result.prediction_unmatched_death_coordinates,
             ]
         ]
 
@@ -371,7 +374,7 @@ class FastBettiMatchingLoss(_Loss):
         # (M, 2) tensor of unmachted persistence pairs for prediction
         prediction_unmatched_pairs = torch.stack(
             [
-                target[tuple(coords[i] for i in range(len(coords[0])) if len(coords) > 0)]
+                prediction[tuple(coords[:, i] for i in range(coords.shape[1]))]
                 for coords in [prediction_unmatched_birth_coordinates, prediction_unmatched_death_coordinates]
             ],
             dim=1,
@@ -383,8 +386,8 @@ class FastBettiMatchingLoss(_Loss):
             [
                 target[tuple(coords[:, i] for i in range(coords.shape[1]))]
                 for coords in [
-                    betti_matching_result.input2_unmatched_birth_coordinates,
-                    betti_matching_result.input2_unmatched_death_coordinates,
+                    betti_matching_result.target_unmatched_birth_coordinates,
+                    betti_matching_result.target_unmatched_death_coordinates,
                 ]
             ],
             dim=1,
