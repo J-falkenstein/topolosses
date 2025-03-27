@@ -251,8 +251,6 @@ class TestDiceTopographLoss(unittest.TestCase):
             base_loss=DiceLoss(
                 softmax=True,
                 smooth=1e-5,
-                alpha=0.5,
-                iter_=5,
                 batch=True,
             ),
         )

@@ -11,8 +11,6 @@ class DiceLoss(_Loss):
 
     def __init__(
         self,
-        iter_=3,
-        alpha=0.5,
         smooth=1e-5,
         sigmoid=False,
         softmax=False,
@@ -49,9 +47,7 @@ class DiceLoss(_Loss):
 
         super(DiceLoss, self).__init__()
 
-        self.iter = iter_
         self.smooth = smooth
-        self.alpha = alpha
         self.sigmoid = sigmoid
         self.softmax = softmax
         self.batch = batch
