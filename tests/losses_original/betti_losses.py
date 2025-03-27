@@ -122,7 +122,7 @@ class FastMulticlassDiceBettiMatchingLoss(_Loss):
                 alpha=cldice_alpha,
                 iter_=5,
                 convert_to_one_vs_rest=convert_to_one_vs_rest,
-                batch=True,
+                batch=False,
             )
         else:
             raise ValueError(f"Invalid dice type: {dice_type}")
@@ -146,8 +146,9 @@ class FastMulticlassDiceBettiMatchingLoss(_Loss):
         alpha: float = 0.5,
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         # Compute multiclass BM losses
+        losses = []
         if alpha > 0:
-            bm_loss, losses = self.MulticlassBMLoss(prediction, target)
+            bm_loss = self.MulticlassBMLoss(prediction, target)
             losses = {"single_matches": losses}
         else:
             bm_loss = torch.zeros(1, device=prediction.device)
@@ -160,7 +161,7 @@ class FastMulticlassDiceBettiMatchingLoss(_Loss):
         losses["cldice"] = dic["cldice"]
         losses["bm"] = alpha * bm_loss.item()
 
-        return dice_loss + alpha * bm_loss, losses
+        return dice_loss + alpha * bm_loss  # , losses
 
 
 class FastDiceBettiMatchingLoss(_Loss):

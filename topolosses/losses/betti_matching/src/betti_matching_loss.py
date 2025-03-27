@@ -36,7 +36,7 @@ class BettiMatchingLoss(_Loss):
         ),
         sphere: bool = False,
         include_background: bool = False,
-        alpha: float = 0.1,
+        alpha: float = 0.5,
         softmax: bool = False,
         sigmoid: bool = False,
         use_base_loss: bool = True,

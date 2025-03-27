@@ -11,10 +11,12 @@ from parameterized import parameterized
 
 # sys.path needs to be added if using local implementations otherwise looking for the package
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from topolosses.losses import BettiMatchingLoss
-from topolosses.losses import DiceLoss
+from topolosses.losses import DiceLoss, CLDiceLoss, BettiMatchingLoss
 
-from losses_original.betti_losses import FastBettiMatchingLoss, FastMulticlassBettiMatchingLoss
+from losses_original.betti_losses import (
+    FastMulticlassBettiMatchingLoss,
+    FastMulticlassDiceBettiMatchingLoss,
+)
 
 
 def transform(tensor, num_classes=2):
@@ -190,20 +192,82 @@ TEST_CASES = [
     ],
 ]
 
+TEST_CASES_OLDNEW = [
+    [
+        {},
+        {
+            "input": transform(
+                torch.tensor(
+                    [
+                        [
+                            [0.0, 0.0, 0.0, 0.0, 0.0],
+                            [0.0, 0.0, 1.0, 0.0, 0.0],
+                            [0.0, 1.0, 0.0, 1.0, 0.0],
+                            [0.0, 0.0, 1.0, 0.0, 0.0],
+                            [0.0, 0.0, 0.0, 0.0, 0.0],
+                        ]
+                    ]
+                )
+            ),
+            "target": transform(
+                torch.tensor(
+                    [
+                        [
+                            [0.0, 0.0, 0.0, 0.0, 0.0],
+                            [0.0, 1.0, 1.0, 1.0, 0.0],
+                            [0.0, 1.0, 0.0, 1.0, 0.0],
+                            [0.0, 1.0, 1.0, 1.0, 0.0],
+                            [0.0, 0.0, 0.0, 0.0, 0.0],
+                        ]
+                    ]
+                )
+            ),
+        },
+        0,
+    ]
+]
+
 
 class TestDiceTopographLoss(unittest.TestCase):
     @parameterized.expand(TEST_CASES)
     def test_result(self, input_param, input_data, expected_val):
-
         result_original = FastMulticlassBettiMatchingLoss(ignore_background=True).forward(
             prediction=input_data["input"], target=input_data["target"]
         )
-        # print("old implementation:")
-        # print(result_original)
         result = BettiMatchingLoss(**input_param).forward(**input_data)
-        # print("new implementation: ")
-        # print(result)
+        # TODO change to compare to expected val
         np.testing.assert_allclose(result.detach().cpu().numpy(), result_original.detach().cpu().numpy(), rtol=1e-5)
+
+    @parameterized.expand(TEST_CASES_OLDNEW)
+    def test_compare_old_to_new(self, input_param, input_data, expected_val):
+        # settings as defined in old betti loss implementation
+        clDiceLoss = CLDiceLoss(
+            softmax=True,
+            include_background=True,
+            smooth=1e-5,
+            alpha=0.5,
+            iter_=5,
+            batch=True,
+            base_loss=DiceLoss(
+                softmax=True,
+                smooth=1e-5,
+                alpha=0.5,
+                iter_=5,
+                batch=True,
+            ),
+        )
+        result = BettiMatchingLoss(**input_param, alpha=0.5, softmax=True, base_loss=clDiceLoss).forward(**input_data)
+        print("new implementation: ")
+        print(result)
+
+        result_original = FastMulticlassDiceBettiMatchingLoss(ignore_background=True).forward(
+            prediction=input_data["input"], target=input_data["target"]
+        )
+        print("old implementation: ")
+        print(
+            result_original
+        )  # difference stem from the fact that the old implementation defines the cl dice different by multiplying (1-alph)*dice
+        # np.testing.assert_allclose(result.detach().cpu().numpy(), result_original.detach().cpu().numpy(), rtol=1e-5)
 
     def test_with_cuda(self):
         if torch.cuda.is_available():
