@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [linux-latest]
+        os: [ubuntu-latest]
     
     steps:
       # Step 1: Checkout the repository
