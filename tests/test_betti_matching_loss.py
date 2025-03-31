@@ -13,11 +13,6 @@ from parameterized import parameterized
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from topolosses.losses import DiceLoss, CLDiceLoss, BettiMatchingLoss
 
-from losses_original.betti_losses import (
-    FastMulticlassBettiMatchingLoss,
-    FastMulticlassDiceBettiMatchingLoss,
-)
-
 
 def transform(tensor, num_classes=2):
     return F.one_hot(tensor.to(torch.int64), num_classes).permute(0, 3, 1, 2).float()
@@ -231,9 +226,6 @@ TEST_CASES_OLDNEW = [
 class TestDiceTopographLoss(unittest.TestCase):
     @parameterized.expand(TEST_CASES)
     def test_result(self, input_param, input_data, expected_val):
-        result_original = FastMulticlassBettiMatchingLoss(ignore_background=True).forward(
-            prediction=input_data["input"], target=input_data["target"]
-        )
         result = BettiMatchingLoss(**input_param).forward(**input_data)
         np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val, rtol=1e-5)
 

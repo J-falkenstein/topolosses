@@ -12,7 +12,7 @@ import numpy as np
 import sys, os
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(current_dir, "ext/Betti-Matching-3D-standalone-branch/build"))
+sys.path.append(os.path.join(current_dir, "ext/Betti-Matching-3D/build"))
 # sys.path.append(os.path.join(current_dir, "ext/Betti-Matching-3D-standalone-branch/build"))
 import betti_matching  # C++ Implementation
 
@@ -211,11 +211,9 @@ class BettiMatchingLoss(_Loss):
                     )
                 )
 
-                num_matched_by_dim += torch.tensor(
-                    result_arrays.num_matches_by_dim, device=input.device, dtype=torch.long
-                )
+                num_matched_by_dim += torch.tensor(result_arrays.num_matched, device=input.device, dtype=torch.long)
                 num_unmatched_prediction_by_dim += torch.tensor(
-                    result_arrays.num_unmatched_prediction_by_dim, device=input.device, dtype=torch.long
+                    result_arrays.num_unmatched_input1, device=input.device, dtype=torch.long
                 )
 
                 current_instance_index += 1
@@ -230,97 +228,109 @@ class BettiMatchingLoss(_Loss):
     ) -> torch.Tensor:  # one_dimension
         """TODO"""
         # Combine all birth and death coordinates from prediction and target into one array
-        (
-            prediction_matches_birth_coordinates,
-            prediction_matches_death_coordinates,
-            target_matches_birth_coordinates,
-            target_matches_death_coordinates,
-            prediction_unmatched_birth_coordinates,
-            prediction_unmatched_death_coordinates,
-        ) = [
+        losses_by_dim = torch.zeros(
+            (len(betti_matching_result.input1_matched_birth_coordinates),),
+            device=prediction.device,
+            dtype=torch.float32,
+        )
+        dims = len(betti_matching_result.input1_matched_birth_coordinates)
+        # Iterate over all dimensions
+        for dim in range(dims):
+            # Combine all birth and death coordinates from prediction and target into one array
             (
-                torch.tensor(array, device=prediction.device, dtype=torch.long)
-                if array.strides[-1] > 0  # if len(array) > 0  # Changed from array.strides[-1] > 0
-                # TODO why are the arrays a list of two numpy arrays now???
-                else torch.zeros(0, len(prediction.shape), device=prediction.device, dtype=torch.long)
-            )
-            for array in [
-                betti_matching_result.prediction_matches_birth_coordinates,
-                betti_matching_result.prediction_matches_death_coordinates,
-                betti_matching_result.target_matches_birth_coordinates,
-                betti_matching_result.target_matches_death_coordinates,
-                betti_matching_result.prediction_unmatched_birth_coordinates,
-                betti_matching_result.prediction_unmatched_death_coordinates,
-            ]
-        ]
-
-        # Get the Barcode interval of the matched pairs from the prediction using the coordinates
-        # (M, 2) tensor of matched persistence pairs for prediction
-        prediction_matched_pairs = torch.stack(
-            [
-                prediction[tuple(coords[:, i] for i in range(coords.shape[1]))]
-                for coords in [prediction_matches_birth_coordinates, prediction_matches_death_coordinates]
-            ],
-            dim=1,
-        )
-
-        # Get the Barcode interval of the matched pairs from the target using the coordinates
-        # (M, 2) tensor of matched persistence pairs for target
-        target_matched_pairs = torch.stack(
-            [
-                target[tuple(coords[:, i] for i in range(coords.shape[1]))]
-                for coords in [target_matches_birth_coordinates, target_matches_death_coordinates]
-            ],
-            dim=1,
-        )
-
-        # Get the Barcode interval of all unmatched pairs  in the prediction using the coordinates
-        # (M, 2) tensor of unmachted persistence pairs for prediction
-        prediction_unmatched_pairs = torch.stack(
-            [
-                prediction[tuple(coords[:, i] for i in range(coords.shape[1]))]
-                for coords in [prediction_unmatched_birth_coordinates, prediction_unmatched_death_coordinates]
-            ],
-            dim=1,
-        )
-
-        # Get the Barcode interval of all unmatched pairs in the target using the coordinates
-        # (M, 2) tensor of unmatched persistence pairs for target
-        target_unmatched_pairs = torch.stack(
-            [
-                target[tuple(coords[:, i] for i in range(coords.shape[1]))]
-                for coords in [
-                    betti_matching_result.target_unmatched_birth_coordinates,
-                    betti_matching_result.target_unmatched_death_coordinates,
+                prediction_matches_birth_coordinates,
+                prediction_matches_death_coordinates,
+                target_matches_birth_coordinates,
+                target_matches_death_coordinates,
+                prediction_unmatched_birth_coordinates,
+                prediction_unmatched_death_coordinates,
+            ) = [
+                (
+                    torch.tensor(array, device=prediction.device, dtype=torch.long)
+                    if array.strides[-1] > 0
+                    else torch.zeros(0, len(prediction.shape), device=prediction.device, dtype=torch.long)
+                )
+                for array in [
+                    betti_matching_result.input1_matched_birth_coordinates[dim],
+                    betti_matching_result.input1_matched_death_coordinates[dim],
+                    betti_matching_result.input2_matched_birth_coordinates[dim],
+                    betti_matching_result.input2_matched_death_coordinates[dim],
+                    betti_matching_result.input1_unmatched_birth_coordinates[dim],
+                    betti_matching_result.input1_unmatched_death_coordinates[dim],
                 ]
-            ],
-            dim=1,
-        )
+            ]
 
-        # filter all pairs where abs(birth - death) < threshold
-        prediction_unmatched_pairs = prediction_unmatched_pairs[
-            torch.abs(prediction_unmatched_pairs[:, 0] - prediction_unmatched_pairs[:, 1])
-            > self.barcode_length_threshold
-        ]
-
-        # sum over ||(birth_pred_i, death_pred_i), (birth_target_i, death_target_i)||²
-        loss_matched = 2 * ((prediction_matched_pairs - target_matched_pairs) ** 2).sum() * self.topology_weights[0]
-
-        # sum over ||(birth_pred_i, death_pred_i), 1/2*(birth_pred_i+death_pred_i, birth_pred_i+death_pred_i)||²
-        # reformulated as (birth_pred_i^2 / 4 + death_pred_i^2/4 - birth_pred_i*death_pred_i/2)
-        if self.push_unmatched_to_1_0:
-            loss_unmatched_pred = (
-                2
-                * ((prediction_unmatched_pairs[:, 0] - 1) ** 2 + prediction_unmatched_pairs[:, 1] ** 2).sum()
-                * self.topology_weights[1]
+            # Get the Barcode interval of the matched pairs from the prediction using the coordinates
+            # (M, 2) tensor of matched persistence pairs for prediction
+            prediction_matched_pairs = torch.stack(
+                [
+                    prediction[tuple(coords[:, i] for i in range(coords.shape[1]))]
+                    for coords in [prediction_matches_birth_coordinates, prediction_matches_death_coordinates]
+                ],
+                dim=1,
             )
-            loss_unmatched_target = (
-                2 * ((target_unmatched_pairs[:, 0] - 1) ** 2 + target_unmatched_pairs[:, 1] ** 2).sum()
-            )
-        else:
-            loss_unmatched_pred = (
-                (prediction_unmatched_pairs[:, 0] - prediction_unmatched_pairs[:, 1]) ** 2
-            ).sum() * self.topology_weights[1]
-            loss_unmatched_target = ((target_unmatched_pairs[:, 0] - target_unmatched_pairs[:, 1]) ** 2).sum()
 
-        return (loss_matched + loss_unmatched_pred + loss_unmatched_target).reshape(1)
+            # Get the Barcode interval of the matched pairs from the target using the coordinates
+            # (M, 2) tensor of matched persistence pairs for target
+            target_matched_pairs = torch.stack(
+                [
+                    target[tuple(coords[:, i] for i in range(coords.shape[1]))]
+                    for coords in [target_matches_birth_coordinates, target_matches_death_coordinates]
+                ],
+                dim=1,
+            )
+
+            # Get the Barcode interval of all unmatched pairs  in the prediction using the coordinates
+            # (M, 2) tensor of unmachted persistence pairs for prediction
+            prediction_unmatched_pairs = torch.stack(
+                [
+                    prediction[tuple(coords[:, i] for i in range(coords.shape[1]))]
+                    for coords in [prediction_unmatched_birth_coordinates, prediction_unmatched_death_coordinates]
+                ],
+                dim=1,
+            )
+
+            # Get the Barcode interval of all unmatched pairs in the target using the coordinates
+            # (M, 2) tensor of unmatched persistence pairs for target
+            target_unmatched_pairs = torch.stack(
+                [
+                    target[tuple(coords[:, i] for i in range(coords.shape[1]))]
+                    for coords in [
+                        betti_matching_result.input2_unmatched_birth_coordinates[dim],
+                        betti_matching_result.input2_unmatched_death_coordinates[dim],
+                    ]
+                ],
+                dim=1,
+            )
+
+            # filter all pairs where abs(birth - death) < threshold
+            prediction_unmatched_pairs = prediction_unmatched_pairs[
+                torch.abs(prediction_unmatched_pairs[:, 0] - prediction_unmatched_pairs[:, 1])
+                > self.barcode_length_threshold
+            ]
+
+            # sum over ||(birth_pred_i, death_pred_i), (birth_target_i, death_target_i)||²
+            loss_matched = (
+                2 * ((prediction_matched_pairs - target_matched_pairs) ** 2).sum() * self.topology_weights[0]
+            )
+
+            # sum over ||(birth_pred_i, death_pred_i), 1/2*(birth_pred_i+death_pred_i, birth_pred_i+death_pred_i)||²
+            # reformulated as (birth_pred_i^2 / 4 + death_pred_i^2/4 - birth_pred_i*death_pred_i/2)
+            if self.push_unmatched_to_1_0:
+                loss_unmatched_pred = (
+                    2
+                    * ((prediction_unmatched_pairs[:, 0] - 1) ** 2 + prediction_unmatched_pairs[:, 1] ** 2).sum()
+                    * self.topology_weights[1]
+                )
+                loss_unmatched_target = (
+                    2 * ((target_unmatched_pairs[:, 0] - 1) ** 2 + target_unmatched_pairs[:, 1] ** 2).sum()
+                )
+            else:
+                loss_unmatched_pred = (
+                    (prediction_unmatched_pairs[:, 0] - prediction_unmatched_pairs[:, 1]) ** 2
+                ).sum() * self.topology_weights[1]
+                loss_unmatched_target = ((target_unmatched_pairs[:, 0] - target_unmatched_pairs[:, 1]) ** 2).sum()
+
+            losses_by_dim[dim] = loss_matched + loss_unmatched_pred + loss_unmatched_target
+
+        return torch.sum(losses_by_dim).reshape(1)
