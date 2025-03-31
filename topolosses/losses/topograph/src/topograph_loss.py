@@ -15,9 +15,9 @@ import torch.multiprocessing as mp
 
 # C++ implementation Topograph, can be installed locally as own package with the setup file
 # during the build process for the distribution file a similar package is build using the cmake file.
-import Topograph as _topograph
+# import Topograph as _topograph
 
-# from . import _topograph
+from . import _topograph
 
 from ...utils import (
     AggregationType,
