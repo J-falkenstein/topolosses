@@ -8,12 +8,12 @@ import numpy as np
 import torch
 from parameterized import parameterized
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from topolosses.losses.dice.src.dice_loss import DiceLoss
+# from topolosses.losses.dice.src.dice_loss import DiceLoss
 
 # When pip package is available_
-# from topolosses.losses import DiceLoss
+from topolosses.losses import DiceLoss
 
 TEST_CASES = [
     [  # shape: (1, 1, 2, 2), (1, 1, 2, 2)

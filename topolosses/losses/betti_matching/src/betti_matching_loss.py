@@ -9,12 +9,13 @@ from functools import partial
 import numpy as np
 
 # from monai.losses.dice import DiceLoss
-import sys, os
+# import sys, os
 
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(current_dir, "ext/Betti-Matching-3D/build"))
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+# sys.path.append(os.path.join(current_dir, "ext/Betti-Matching-3D/build"))
 # sys.path.append(os.path.join(current_dir, "ext/Betti-Matching-3D-standalone-branch/build"))
-import betti_matching  # C++ Implementation
+# import betti_matching  # C++ Implementation
+from . import betti_matching
 
 # from losses.dice_losses import Multiclass_CLDice
 from ...utils import compute_default_dice_loss

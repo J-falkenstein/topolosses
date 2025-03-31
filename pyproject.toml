@@ -39,10 +39,12 @@ wheel.packages = ["topolosses"]
 [tool.cibuildwheel]
 archs = ["native"]
 manylinux-x86_64-image = "manylinux_2_28"
+build = "cp312-*"
 
 [tool.cibuildwheel.linux]
 before-all = [
-    "yum install -y boost-devel python3-devel",
+# added glibc-devel for threads
+    "yum install -y boost-devel python3-devel glibc-devel",
     "pip install 'pybind11[global]'",
     "ARCH=$(uname -m) && curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-${ARCH}.sh",
     "bash Miniconda3-latest-Linux-*.sh -b -p /opt/miniconda",
