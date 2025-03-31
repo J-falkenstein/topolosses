@@ -56,7 +56,7 @@ TEST_CASES = [
                 )
             ),
         },
-        3,
+        1.0,
     ],
     [
         {"use_base_loss": False, "alpha": 1},
@@ -88,7 +88,7 @@ TEST_CASES = [
                 )
             ),
         },
-        0,
+        4.0,
     ],
     [
         {"use_base_loss": False, "alpha": 1, "include_background": True},
@@ -122,7 +122,7 @@ TEST_CASES = [
                 )
             ),
         },
-        1,
+        1.0,
     ],
     [
         {"use_base_loss": False, "alpha": 1, "include_background": True},
@@ -223,7 +223,7 @@ TEST_CASES_OLDNEW = [
                 )
             ),
         },
-        0,
+        1.3293470,
     ]
 ]
 
@@ -235,8 +235,7 @@ class TestDiceTopographLoss(unittest.TestCase):
             prediction=input_data["input"], target=input_data["target"]
         )
         result = BettiMatchingLoss(**input_param).forward(**input_data)
-        # TODO change to compare to expected val
-        np.testing.assert_allclose(result.detach().cpu().numpy(), result_original.detach().cpu().numpy(), rtol=1e-5)
+        np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val, rtol=1e-5)
 
     @parameterized.expand(TEST_CASES_OLDNEW)
     def test_compare_old_to_new(self, input_param, input_data, expected_val):
@@ -255,17 +254,7 @@ class TestDiceTopographLoss(unittest.TestCase):
             ),
         )
         result = BettiMatchingLoss(**input_param, alpha=0.5, softmax=True, base_loss=clDiceLoss).forward(**input_data)
-        print("new implementation: ")
-        print(result)
-
-        result_original = FastMulticlassDiceBettiMatchingLoss(ignore_background=True).forward(
-            prediction=input_data["input"], target=input_data["target"]
-        )
-        print("old implementation: ")
-        print(
-            result_original
-        )  # difference stem from the fact that the old implementation defines the cl dice different by multiplying (1-alph)*dice
-        # np.testing.assert_allclose(result.detach().cpu().numpy(), result_original.detach().cpu().numpy(), rtol=1e-5)
+        np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val, rtol=1e-5)
 
     def test_with_cuda(self):
         if torch.cuda.is_available():
