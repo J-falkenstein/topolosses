@@ -8,7 +8,8 @@ Topolosses is a Python package providing topology-aware losses for segmentation 
 
 ## Installation
 
-Install the package from Test PyPI:
+Install the package from Test PyPI. 
+The verision 0.1.2 includes betti matching:
 
 ```bash
 pip install -i https://test.pypi.org/simple/ topolosses==0.1.2
@@ -39,21 +40,30 @@ result = BettiMatchingLoss(**input_param, alpha=0.5, softmax=True, base_loss=clD
 ```
 
 ## Common Arguments for Loss Functions
-include_background (bool): Includes the background in for the topology-aware component computation. Default: False.
 
-alpha (float): Weight for combining the topology-aware component and the base loss component. Default: 0.5.
+- **`include_background`** (bool):  
+  Includes the background in the topology-aware component computation. Default: `False`.
 
-sigmoid (bool): Applies sigmoid activation before computing topology-aware component. Default: False.
+- **`alpha`** (float):  
+  Weight for combining the topology-aware component and the base loss component. Default: `0.5`.
 
-softmax (bool): Applies softmax activation before computing topology-aware component. Default: False.
+- **`sigmoid`** (bool):  
+  Applies sigmoid activation before computing the topology-aware component. Default: `False`.
 
-use_base_component (bool): If False, only topology-aware component is computed. Default: True.
+- **`softmax`** (bool):  
+  Applies softmax activation before computing the topology-aware component. Default: `False`.
 
-base_loss (_Loss, optional): The base loss function used with topology-aware component. Default: None.
+- **`use_base_component`** (bool):  
+  If `False`, only the topology-aware component is computed. Default: `True`.
+
+- **`base_loss`** (_Loss, optional):  
+  The base loss function used with the topology-aware component. Default: `None`.
 
 
 
 
+
+## Folder Structure
 
 
 ```
