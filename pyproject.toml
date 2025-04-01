@@ -39,7 +39,6 @@ wheel.packages = ["topolosses"]
 [tool.cibuildwheel]
 archs = ["native"]
 manylinux-x86_64-image = "manylinux_2_28"
-build = "cp312-*"
 
 [tool.cibuildwheel.linux]
 before-all = [
@@ -50,7 +49,8 @@ before-all = [
     "bash Miniconda3-latest-Linux-*.sh -b -p /opt/miniconda",
     "export PATH=/opt/miniconda/bin:$PATH",
     "conda init bash",
-    "/opt/miniconda/bin/conda install -y -c conda-forge opencv",
+#    "/opt/miniconda/bin/conda install -y -c conda-forge opencv",
+    "conda install -y opencv=4.10.0=*2",
     "/opt/miniconda/bin/conda install -y anaconda::eigen",
 ]
 
