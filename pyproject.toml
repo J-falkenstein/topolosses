@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "topolosses"
-version = "0.1.1"
+version = "0.1.2"
 description = "A collection of losses and metrics for topology-preserving image segmentation."
 readme = "topolosses/README.md"
 authors = [
@@ -49,7 +49,8 @@ before-all = [
     "bash Miniconda3-latest-Linux-*.sh -b -p /opt/miniconda",
     "export PATH=/opt/miniconda/bin:$PATH",
     "conda init bash",
-#    "/opt/miniconda/bin/conda install -y -c conda-forge opencv",
+# Old: "/opt/miniconda/bin/conda install -y -c conda-forge opencv", 
+# Newer anaconda::opencv 4.10.0 installation zipp files, use a qt6 version instead of qt5, this seems to result in a segmentation fault (core dumped) runtime error
     "conda install -y opencv=4.10.0=*2",
     "/opt/miniconda/bin/conda install -y anaconda::eigen",
 ]

@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from parameterized import parameterized
 
 # sys.path needs to be added if using local implementations otherwise looking for the package
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from topolosses.losses import DiceLoss, CLDiceLoss, BettiMatchingLoss
 
 
