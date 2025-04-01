@@ -59,8 +59,7 @@ result = BettiMatchingLoss(**input_param, alpha=0.5, softmax=True, base_loss=clD
 - **`base_loss`** (_Loss, optional):  
   The base loss function used with the topology-aware component. Default: `None`.
 
-
-
+> **Note**: Each loss function also has specific arguments that are unique to its behavior. These are documented within the code using docstrings, and can be easily accessed using Python's `help()` function or by exploring the source code.
 
 
 ## Folder Structure
