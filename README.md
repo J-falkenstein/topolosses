@@ -2,6 +2,59 @@
 
 This is the readme used for the github repo. Hence, the entire project including the setup and test files. 
 
+# topolosses
+
+Topolosses is a Python package providing topology-aware losses for segmentation tasks. It includes losses that improve topological properties in segmentation models, such as `DiceLoss`, `TopographLoss`, and `BettiMatchingLoss`.
+
+## Installation
+
+Install the package from Test PyPI:
+
+```bash
+pip install -i https://test.pypi.org/simple/ topolosses==0.1.2
+```
+
+## Usage
+
+Import the desired loss functions:
+
+```python
+from topolosses.losses import CLDiceLoss, DiceLoss, BettiMatchingLoss
+
+clDiceLoss = CLDiceLoss(
+    softmax=True,
+    include_background=True,
+    smooth=1e-5,
+    alpha=0.5,
+    iter_=5,
+    batch=True,
+    base_loss=DiceLoss(
+        softmax=True,
+        smooth=1e-5,
+        batch=True,
+    ),
+)
+
+result = BettiMatchingLoss(**input_param, alpha=0.5, softmax=True, base_loss=clDiceLoss).forward(**input_data)
+```
+
+## Common Arguments for Loss Functions
+include_background (bool): Includes the background in for the topology-aware component computation. Default: False.
+
+alpha (float): Weight for combining the topology-aware component and the base loss component. Default: 0.5.
+
+sigmoid (bool): Applies sigmoid activation before computing topology-aware component. Default: False.
+
+softmax (bool): Applies softmax activation before computing topology-aware component. Default: False.
+
+use_base_component (bool): If False, only topology-aware component is computed. Default: True.
+
+base_loss (_Loss, optional): The base loss function used with topology-aware component. Default: None.
+
+
+
+
+
 
 ```
 topolosses
