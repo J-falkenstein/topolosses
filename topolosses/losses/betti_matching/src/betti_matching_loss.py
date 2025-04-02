@@ -24,7 +24,19 @@ from ...utils import FiltrationType
 
 
 class BettiMatchingLoss(_Loss):
-    """TODO"""
+    """BettiMatchingLoss is a topology-aware loss function that ensures spatially and feature-wise accurate topology preservation in image segmentation tasks.
+
+    The loss function is based on Betti matching, a concept from persistent homology that enables a s
+    patially correct matching of topological features via induced matchings of persistence barcodes.
+
+    The method has been introduced and refined in the following works:
+    - Stucki et al. (2023) "Topologically Faithful Image Segmentation via Induced Matching of Persistence Barcodes"
+    - Stucki et al. (2024) "Efficient Betti Matching Enables Topology-Aware 3D Segmentation via Persistent Homology"
+    - Berger et al. (2024) "Topologically Faithful Multi-class Segmentation in Medical Images"
+
+    By default, the Betti matching component is combined with a dice loss comnponent.
+    For more flexibility, it can be combined with other base loss functions or used as a standalone topology-aware loss..
+    """
 
     def __init__(
         self,
@@ -46,21 +58,31 @@ class BettiMatchingLoss(_Loss):
     ) -> None:
         """
         Args:
-            TODO
-            topology_weight: TODO weights for the topology classes in the following order: [matched, unmatched_pred, unmatched_target]
-            include_background (bool): If `True`, includes the background class in the topograph computation.
-                Background inclusion in the base loss component should be controlled independently.
-            alpha (float): Weighting factor for the topograph loss component. Is only applied if a base loss is used. Defaults to 0.1.
-            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.
-                Typically used for binary segmentation. Defaults to `False`.
-            softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.
-                This is useful for multi-class segmentation tasks. Defaults to `False`.
-                For other activation functions set sigmoid and softmax to false and apply the transformation before passing inputs to the loss.
-            use_base_component (bool): if false the loss only consists of the Topograph component.
-                A forward call will return the full Topograph component.
-                base_loss, weights, and alpha will be ignored if this flag is set to false.
-            base_loss (_Loss, optional): The base loss function to be used alongside the Topograph loss.
-                Defaults to `None`, meaning a Dice component with default parameters will be used.  .
+            filtration_type (str): Determines how the filtration is computed:
+                - superlevel: Features appear as input values decrease
+                - sublevel: Features appear as input values increase
+                - bothlevels: Applies both filtration types and combines results
+            num_processes (int): Number of parallel processes for computing Betti matching
+            push_unmatched_to_1_0 (bool): If True, pushes unmatched birth points toward 1 and death points
+                toward 0. If False, simply pushes birth and death points together.
+            barcode_length_threshold (float): Minimum persistence (birth-death) threshold to filter out
+                short-lived topological features that may be noise.
+            topology_weights (tuple[float, float]): Tuple of weights (matched, unmatched) controlling the importance of:
+                - matched features between prediction and target
+                - unmatched features in prediction
+            sphere: If True, adds padding to create periodic boundary conditions (sphere topology). Defaults to False
+            include_background (bool): If `True`, includes the background class in the topology-aware computation.
+                Background inclusion in the base loss component should be controlled independently. Defaults to `False`.
+            alpha (float): Weighting factor for the topology-aware loss component. Only applied if a base loss is used. Defaults to `0.5`.
+            sigmoid (bool): If `True`, applies sigmoid activation to the forward pass input before computing the topology-aware component.
+                If using the default Dice loss, the sigmoid-transformed input is also used. For custom base losses, the raw input is passed.
+                Typically used for binary segmentation. Default: `False`.
+            softmax (bool): If `True`, applies softmax to the forward pass input before computing the topology-aware component.
+                If using the default Dice loss, the softmax-transformed input is also used. For custom base losses, the raw input is passed. Default: `False`.
+            use_base_component (bool): If `False`, the loss consists only of the topology-aware component.
+                A forward call will return the full topology-aware component. `base_loss`, `weights`, and `alpha` will be ignored if this flag is set to `False`.
+            base_loss (_Loss, optional): The base loss function to be used alongside the topology-aware loss.
+                Defaults to `None`, meaning a Dice component with default parameters will be used.
 
         Raises:
             ValueError: If more than one of [sigmoid, softmax] is set to True.
@@ -164,7 +186,21 @@ class BettiMatchingLoss(_Loss):
     def _compute_batched_betti_matching_loss(
         self, input: torch.Tensor, target: torch.Tensor
     ) -> tuple[torch.Tensor, list[torch.Tensor]]:
-        """TODO"""
+        """Compute the Betti matching loss for batched input and target tensors.
+
+        Processes input and target tensors through the appropriate filtration transformations,
+        computes matching between persistence barcodes using the betti_matching module,
+        and aggregates the loss values across all instances in the batch.
+
+        Args:
+            input: Predicted segmentation tensor [B, C, *spatial_dims]
+            target: Ground truth segmentation tensor [B, C, *spatial_dims]
+
+        Returns:
+            tuple containing:
+                - Mean loss value across the batch (torch.Tensor)
+                - List of individual loss tensors for each instance (list[torch.Tensor])
+        """
         # Flatten out channel dimension to treat each channel as a separate instance for multiclass prediction
         input = torch.flatten(input, start_dim=0, end_dim=1).unsqueeze(1)
         target = torch.flatten(target, start_dim=0, end_dim=1).unsqueeze(1)
@@ -235,7 +271,24 @@ class BettiMatchingLoss(_Loss):
         target: torch.Tensor,  # *spatial_dimensions
         betti_matching_result: betti_matching.return_types.BettiMatchingResult,
     ) -> torch.Tensor:  # one_dimension
-        """TODO"""
+        """Calculate the Betti matching loss for a single prediction-target pair.
+
+        Computes loss based on matched and unmatched topological features between prediction
+        and target using coordinates from the betti_matching_result. Loss combines three components:
+        1. Squared differences between matched persistence pairs
+        2. Penalty for unmatched features in prediction
+        3. Penalty for unmatched features in target
+
+        Args:
+            prediction: Single prediction tensor [*spatial_dimensions]
+            target: Single target tensor [*spatial_dimensions]
+            betti_matching_result: Result object from betti_matching module containing
+                                coordinates of birth/death points for matched and unmatched features
+
+        Returns:
+            Single loss value as tensor of shape [1]
+        """
+
         # Combine all birth and death coordinates from prediction and target into one array
         losses_by_dim = torch.zeros(
             (len(betti_matching_result.input1_matched_birth_coordinates),),

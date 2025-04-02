@@ -48,10 +48,12 @@ result = BettiMatchingLoss(**input_param, alpha=0.5, softmax=True, base_loss=clD
   Weight for combining the topology-aware component and the base loss component. Default: `0.5`.
 
 - **`sigmoid`** (bool):  
-  Applies sigmoid activation before computing the topology-aware component. Default: `False`.
+  Applies sigmoid activation to the forward pass input before computing the topology-aware component. 
+  If using the default Dice loss, the sigmoid-transformed input is also used. For custom base losses, the raw input is passed. Default: `False`.
 
 - **`softmax`** (bool):  
-  Applies softmax activation before computing the topology-aware component. Default: `False`.
+  Applies softmax activation to the forward pass input before computing the topology-aware component. 
+  If using the default Dice loss, the softmax-transformed input is also used. For custom base losses, the raw input is passed. Default: `False`.
 
 - **`use_base_component`** (bool):  
   If `False`, only the topology-aware component is computed. Default: `True`.

@@ -545,16 +545,18 @@ class TopographLoss(_Loss):
     ) -> None:
         """
         Args:
-            num_processes (int): TODO
-            use_c (bool): TODO
-            sphere (bool): TODO
-            eight_connectivity (bool):
+            num_processes (int): Number of parallel processes to use for computation. TODO how exactly is this implemented and what does the user need to know?
+            use_c (bool): Whether to use the C implementation (likely for performance) instead of a pure Python version. Defaults to True.
+                TODO figure out if this option is useful if the package always comes with c++ extension.
+            sphere (bool): If True, adds padding to create periodic boundary conditions (sphere topology). Defaults to False
+            eight_connectivity (bool): Determines whether to use 8-connectivity for foreground components (i.e., diagonal adjacent pixels form a single connected component)
+                versus 4-connectivity when building the component graph. Defaults to 8-connectivity.
             aggregation (AggregationType): Specifies the aggregation method for loss calculation across the batch.
-                Possible values are mean, sum, max, min, ce, rms, and leg
-            thres_distr (ThresholdDistribution): TODO
-                Defaults to `ThresholdDistribution.NONE`. Possible values are uniform and gaussian
-            thres_var (float): TODO
-                Defaults to 0.0.
+                Possible values are mean, sum, max, min, ce, rms, and leg.
+            thres_distr (ThresholdDistribution): Determines the distribution used for sampling the binarization threshold.
+                Possible values are uniform and gaussian. Defaults to None which is a constant binarization threshold of 0.5.
+            thres_var (float):  If a thres_distribution is set, this varibale controls the magnitude of random threshold variation applied during loss computation,
+                with higher values increasing the noise. Defaults to 0.0.
             include_background (bool): If `True`, includes the background class in the topograph computation.
                 Background inclusion in the base loss component should be controlled independently.
             alpha (float): Weighting factor for the topograph loss component. Is only applied if a base loss is used. Defaults to 0.1.
