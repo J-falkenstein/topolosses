@@ -1,176 +1,141 @@
 from __future__ import annotations
+import warnings
+from typing import List, Optional
+
+import enum
 import torch
-import numpy as np
-import monai
 from torch.nn.modules.loss import _Loss
-from gudhi import wasserstein
+from functools import partial
+import numpy as np
+from gudhi import (
+    wasserstein,
+)  # -> TODO need as requirement of package, and for some reason it depends on ot or POT which is not installed when gudhi is installed
 
-import typing
-from .dice_losses import Multiclass_CLDice
-
-if typing.TYPE_CHECKING:
-    from typing import Tuple, List
-    from numpy.typing import NDArray
-
-    LossOutputName = str
-    from jaxtyping import Float
-    from torch import Tensor
-
+# TODO adjust that this package is in a plcace where betti matching and hutopo can accesss it
+# from ...betti_matching.src import betti_matching
 import sys, os
 
 sys.path.append(
     "/home/computacenter/Documents/janek/topolosses/topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-barcode/build"
 )
-import betti_matching  # C++ Implementation
+import betti_matching
 
-from .utils import DiceType, FiltrationType, convert_to_one_vs_rest
+from ...utils import compute_default_dice_loss
+from ...utils import FiltrationType
 
 
-class MulticlassDiceWassersteinLoss(_Loss):
+class HutopoLoss(_Loss):
+    """TODO"""
+
     def __init__(
         self,
         filtration_type: FiltrationType = FiltrationType.SUPERLEVEL,
-        dice_type: DiceType = DiceType.CLDICE,
         num_processes: int = 1,
-        convert_to_one_vs_rest: bool = False,
-        cldice_alpha: float = 0.5,
-        ignore_background: bool = False,
-    ) -> None:
-        super().__init__()
-
-        if dice_type == DiceType.DICE:
-            self.DiceLoss = Multiclass_CLDice(
-                softmax=not convert_to_one_vs_rest,
-                include_background=True,
-                smooth=1e-5,
-                alpha=0.0,
-                convert_to_one_vs_rest=convert_to_one_vs_rest,
-                batch=True,
-            )
-        elif dice_type == DiceType.CLDICE:
-            self.DiceLoss = Multiclass_CLDice(
-                softmax=not convert_to_one_vs_rest,
-                include_background=not ignore_background,
-                smooth=1e-5,
-                alpha=cldice_alpha,
-                iter_=5,
-                convert_to_one_vs_rest=convert_to_one_vs_rest,
-                batch=True,
-            )
-        else:
-            raise ValueError(f"Invalid dice type: {dice_type}")
-
-        self.MulticlassWassersteinloss = MulticlassWassersteinLoss(
-            filtration_type=filtration_type,
-            num_processes=num_processes,
-            convert_to_one_vs_rest=convert_to_one_vs_rest,
-            softmax=not convert_to_one_vs_rest,
-            ignore_background=ignore_background,
-        )
-
-    def forward(
-        self,
-        prediction: Float[torch.Tensor, "batch channel *spatial_dimensions"],
-        target: Float[torch.Tensor, "batch channel *spatial_dimensions"],
+        include_background: bool = False,
         alpha: float = 0.5,
-    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        # Compute multiclass Wasserstein losses
-        if alpha > 0:
-            wasserstein_loss, losses = self.MulticlassWassersteinloss(prediction, target)
-            losses = {"single_matches": losses}
-        else:
-            wasserstein_loss = torch.zeros(1, device=prediction.device)
-            losses = {}
-
-        # Multiclass Dice loss
-        dice_loss, dic = self.DiceLoss(prediction, target)
-
-        losses["dice"] = dic["dice"]
-        losses["cldice"] = dic["cldice"]
-        losses["wasserstein"] = alpha * wasserstein_loss.item()
-
-        return dice_loss + alpha * wasserstein_loss, losses
-
-
-class MulticlassWassersteinLoss(_Loss):
-    def __init__(
-        self,
-        filtration_type: FiltrationType = FiltrationType.SUPERLEVEL,
-        num_processes: int = 1,
-        convert_to_one_vs_rest: bool = True,
         softmax: bool = False,
-        ignore_background: bool = False,
+        sigmoid: bool = False,
+        use_base_loss: bool = True,
+        base_loss: Optional[_Loss] = None,
     ) -> None:
-        super().__init__()
-        if softmax and convert_to_one_vs_rest:
+        """TODO"""
+        if sum([sigmoid, softmax]) > 1:
             raise ValueError(
-                "If softmax is True, convert_to_one_vs_rest must be False. Softmax is already handled by one vs rest"
+                "At most one of [sigmoid, softmax] can be set to True. "
+                "You can only choose one of these options at a time or none if you already pass probabilites."
             )
 
-        self.softmax = softmax
-        self.convert_to_one_vs_rest = convert_to_one_vs_rest
-        self.ignore_background = ignore_background
+        super(HutopoLoss, self).__init__()
 
-        self.WassersteinLoss = WassersteinLoss(
-            filtration_type=filtration_type,
-            num_processes=num_processes,
-        )
-
-    def forward(
-        self,
-        input: Float[torch.Tensor, "batch channel *spatial_dimensions"],
-        target: Float[torch.Tensor, "batch channel *spatial_dimensions"],
-    ) -> tuple[torch.Tensor, list[torch.Tensor]]:
-
-        if self.softmax:
-            input = torch.softmax(input, dim=1)
-
-        if self.convert_to_one_vs_rest:
-            input = convert_to_one_vs_rest(input.clone())
-
-        if self.ignore_background:
-            input = input[:, 1:]
-            target = target[:, 1:]
-
-        # Flatten out channel dimension to treat each channel as a separate instance
-        input = torch.flatten(input, start_dim=0, end_dim=1).unsqueeze(1)
-        converted_target = torch.flatten(target, start_dim=0, end_dim=1).unsqueeze(1)
-
-        # Compute Wasserstein loss
-        wasserstein_loss, losses = self.WassersteinLoss(input, converted_target)
-
-        return wasserstein_loss, losses
-
-
-class WassersteinLoss(torch.nn.modules.loss._Loss):
-    def __init__(
-        self,
-        filtration_type: FiltrationType = FiltrationType.SUPERLEVEL,
-        num_processes=1,
-    ) -> None:
-        super().__init__()
+        if isinstance(filtration_type, str):
+            try:
+                filtration_type = FiltrationType(filtration_type)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid filtration_type '{filtration_type}'. Expected one of {[e.value for e in FiltrationType]}"
+                )
         self.filtration_type = filtration_type
         self.num_processes = num_processes
+        self.include_background = include_background
+        self.alpha = alpha
+        self.softmax = softmax
+        self.sigmoid = sigmoid
+        self.use_base_loss = use_base_loss
+        self.base_loss = base_loss
 
-    def forward(
-        self,
-        input: Float[Tensor, "batch channels *spatial_dimensions"],
-        target: Float[Tensor, "batch channels *spatial_dimensions"],
-    ) -> tuple[Tensor, dict[str, List[Tensor]]]:
+        if not self.use_base_loss:
+            if base_loss is not None:
+                warnings.warn("base_loss is ignored beacuse use_base_component is set to false")
+            if self.alpha != 1:
+                warnings.warn("Alpha < 1 has no effect when no base component is used.")
 
-        wasserstein_losses = self.compute_wasserstein_loss(input, target)
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """Calculates the forward pass of the HutopoLoss.
 
-        dic = {
-            "losses": wasserstein_losses,
-        }
-        loss: torch.Tensor = torch.mean(torch.concatenate(wasserstein_losses))
-        return loss, dic
+        Args:
+            input (Tensor): Input tensor of shape (batch_size, num_classes, H, W).
+            target (Tensor): Target tensor of shape (batch_size, num_classes, H, W).
+
+        Returns:
+            Tensor: The calculated betti matching loss.
+
+        Raises:
+            ValueError: If the shape of the ground truth is different from the input shape.
+            ValueError: If softmax=True and the number of channels for the prediction is 1.
+
+        """
+        if target.shape != input.shape:
+            raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
+
+        starting_class = 0 if self.include_background else 1
+        num_classes = input.shape[1]
+
+        if num_classes == 1:
+            if self.softmax:
+                raise ValueError(
+                    "softmax=True requires multiple channels for class probabilities, but received a single-channel input."
+                )
+            if not self.include_background:
+                warnings.warn(
+                    "Single-channel prediction detected. The `include_background=False` setting  will be ignored."
+                )
+                starting_class = 0
+
+        # Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
+        # These settings have to be controlled by the user when initializing the base loss function
+        base_loss = torch.tensor(0.0)
+        if self.alpha < 1 and self.use_base_loss and self.base_loss is not None:
+            base_loss = self.base_loss(input, target)
+
+        if self.sigmoid:
+            input = torch.sigmoid(input)
+        elif self.softmax:
+            input = torch.softmax(input, 1)
+
+        if self.alpha < 1 and self.use_base_loss and self.base_loss is None:
+            base_loss = compute_default_dice_loss(input, target)
+
+        hutopo_loss = torch.tensor(0.0)
+        if self.alpha > 0:
+            hutopo_loss = self.compute_wasserstein_loss(
+                input[:, starting_class:].float(),
+                target[:, starting_class:].float(),
+            )
+            hutopo_loss = torch.mean(torch.concatenate(hutopo_loss))
+
+        total_loss = hutopo_loss if not self.use_base_loss else base_loss + self.alpha * hutopo_loss
+
+        return total_loss
 
     def compute_wasserstein_loss(
         self,
-        prediction: Float[Tensor, "batch channels *spatial_dimensions"],
-        target: Float[Tensor, "batch channels *spatial_dimensions"],
+        prediction: torch.Tensor,
+        target: torch.Tensor,
     ) -> List[torch.Tensor]:
+        # Flatten out channel dimension to treat each channel as a separate instance for multiclass prediction
+        # TODO this snippet is used in hutopo and betti matching so far, might be smart to move it either outside of these functions or to a parent class
+        prediction = torch.flatten(prediction, start_dim=0, end_dim=1).unsqueeze(1)
+        target = torch.flatten(target, start_dim=0, end_dim=1).unsqueeze(1)
         if self.filtration_type == FiltrationType.SUPERLEVEL:
             # Using (1 - ...) to allow binary sorting optimization on the label, which expects values [0, 1]
             prediction = 1 - prediction
@@ -222,12 +187,21 @@ class WassersteinLoss(torch.nn.modules.loss._Loss):
 
     def _wasserstein_loss(
         self,
-        prediction: Float[Tensor, "*spatial_dimensions"],
-        target: Float[Tensor, "*spatial_dimensions"],
+        prediction: torch.Tensor,
+        target: torch.Tensor,
         barcode_result_prediction: betti_matching.return_types.BarcodeResult,
         barcode_result_target: betti_matching.return_types.BarcodeResult,
-    ) -> Float[Tensor, "one_dimension"]:
+    ) -> torch.Tensor:
 
+        # Combine all birth and death coordinates from prediction and target into one array
+        # losses_by_dim = torch.zeros(
+        #     (len(barcode_result_prediction.birth_coordinates),),
+        #     device=prediction.device,
+        #     dtype=torch.float32,
+        # )
+        # dims = len(barcode_result_prediction.birth_coordinates)
+
+        # for dim in range(dims):
         (
             prediction_birth_coordinates,
             prediction_death_coordinates,
@@ -262,15 +236,6 @@ class WassersteinLoss(torch.nn.modules.loss._Loss):
                 for coords in [target_birth_coordinates, target_death_coordinates]
             ],
             dim=1,
-        )
-
-        prediction_pairs = (
-            prediction_pairs.as_tensor()
-            if isinstance(prediction_pairs, monai.data.meta_tensor.MetaTensor)
-            else prediction_pairs
-        )
-        target_pairs = (
-            target_pairs.as_tensor() if isinstance(target_pairs, monai.data.meta_tensor.MetaTensor) else target_pairs
         )
 
         losses_matched_by_dim = []

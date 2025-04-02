@@ -21,7 +21,9 @@ requires-python = ">=3.8"
 dependencies = [
     "torch>=1.9", 
     "scipy",
-    "numpy"
+    "numpy",
+    "gudhi", 
+    "POT" # import ot somehow this is used in gudhi but not a requirement
 ]
 # Additional Libraries:
 # - `eigen3` and `boost` are header-only and don't require installation.  

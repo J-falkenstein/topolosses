@@ -13,9 +13,8 @@ import sys, os
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 print("current dir: ", current_dir)
-# needs standalone branch
 sys.path.append(
-    os.path.join(current_dir, "..topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-branch/build")
+    os.path.join(current_dir, "../topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-barcode/build")
 )
 import betti_matching  # C++ Implementation
 

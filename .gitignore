@@ -26,6 +26,7 @@ var/
 external/
 wheelhouse*/
 topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-local-build
+topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-barcode/
 
 
 # Installer logs
