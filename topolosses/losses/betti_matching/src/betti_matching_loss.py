@@ -15,7 +15,8 @@ import numpy as np
 # sys.path.append(os.path.join(current_dir, "ext/Betti-Matching-3D/build"))
 # sys.path.append(os.path.join(current_dir, "ext/Betti-Matching-3D-standalone-branch/build"))
 # import betti_matching  # C++ Implementation
-from . import betti_matching
+
+from . import betti_matching  # during building this is where to find the extension
 
 # from losses.dice_losses import Multiclass_CLDice
 from ...utils import compute_default_dice_loss
@@ -77,6 +78,13 @@ class BettiMatchingLoss(_Loss):
 
         super(BettiMatchingLoss, self).__init__()
 
+        if isinstance(filtration_type, str):
+            try:
+                filtration_type = FiltrationType(filtration_type)
+            except ValueError:
+                raise ValueError(
+                    f"Invalid filtration_type '{filtration_type}'. Expected one of {[e.value for e in FiltrationType]}"
+                )
         self.filtration_type = filtration_type
         self.num_processes = num_processes
         self.push_unmatched_to_1_0 = push_unmatched_to_1_0

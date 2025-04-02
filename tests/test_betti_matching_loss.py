@@ -10,7 +10,7 @@ import torch.nn.functional as F
 from parameterized import parameterized
 
 # sys.path needs to be added if using local implementations otherwise looking for the package
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from topolosses.losses import DiceLoss, CLDiceLoss, BettiMatchingLoss
 
 
@@ -245,7 +245,9 @@ class TestDiceTopographLoss(unittest.TestCase):
                 batch=True,
             ),
         )
-        result = BettiMatchingLoss(**input_param, alpha=0.5, softmax=True, base_loss=clDiceLoss).forward(**input_data)
+        result = BettiMatchingLoss(
+            **input_param, filtration_type="superlevel", alpha=0.5, softmax=True, base_loss=clDiceLoss
+        ).forward(**input_data)
         np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val, rtol=1e-5)
 
     def test_with_cuda(self):

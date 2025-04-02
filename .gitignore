@@ -25,6 +25,7 @@ var/
 *.egg
 external/
 wheelhouse*/
+topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-local-build
 
 
 # Installer logs
