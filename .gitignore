@@ -25,7 +25,9 @@ var/
 *.egg
 external/
 wheelhouse*/
+# ignore all except the cleaned up folder Betti-Matching-global-build
 topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-local-build
+topolosses/losses/betti_matching/src/ext/Betti-Matching-3D
 topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-barcode/
 
 
