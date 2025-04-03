@@ -57,30 +57,31 @@ endif()
 
 ### from here on alle new betti matching stuff
 # Build betti_matching extension
+# todo adjust to 
 pybind11_add_module(betti_matching
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/_BettiMatching.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/BettiMatching.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/utils.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/data_structures.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_1D/BettiMatching.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_1D/dimension_0.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_1D/data_structures.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_2D/BettiMatching.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_2D/dimension_0.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_2D/dimension_1.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_2D/data_structures.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_3D/BettiMatching.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_3D/dimension_0.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_3D/dimension_1.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_3D/dimension_2.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_3D/data_structures.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_3D/enumerators.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_nD/BettiMatching.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_nD/dimension_0.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_nD/inter_dimensions.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_nD/top_dimension.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_nD/data_structures.cpp
-    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D/src/src_nD/enumerators.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/_BettiMatching.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/BettiMatching.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/utils.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/data_structures.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_1D/BettiMatching.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_1D/dimension_0.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_1D/data_structures.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_2D/BettiMatching.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_2D/dimension_0.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_2D/dimension_1.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_2D/data_structures.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_3D/BettiMatching.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_3D/dimension_0.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_3D/dimension_1.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_3D/dimension_2.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_3D/data_structures.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_3D/enumerators.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_nD/BettiMatching.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_nD/dimension_0.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_nD/inter_dimensions.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_nD/top_dimension.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_nD/data_structures.cpp
+    topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-global-build/src/src_nD/enumerators.cpp
 )
 
 set_target_properties(betti_matching
