@@ -26,7 +26,7 @@ dependencies = [
     "POT" # import ot somehow this is used in gudhi but not a requirement
 ]
 # Additional Libraries:
-# - `eigen3` and `boost` are header-only and don't require installation.  
+# - `eigen3` and `boost` are header-only and don't require installation by user
 # - `opencv` is bundled into the wheel with `auditwheel repair` for system compatibility.  
 
 [project.urls]

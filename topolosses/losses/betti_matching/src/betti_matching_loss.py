@@ -18,7 +18,6 @@ import numpy as np
 
 from . import betti_matching  # during building this is where to find the extension
 
-# from losses.dice_losses import Multiclass_CLDice
 from ...utils import compute_default_dice_loss
 from ...utils import FiltrationType
 

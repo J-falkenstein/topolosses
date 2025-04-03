@@ -173,10 +173,10 @@ class Multiclass_CLDice(_Loss):
         cl_dice = torch.mean(cl_dice)
 
         # Total loss
-        loss = (1 - self.alpha) * dice + self.alpha * cl_dice
+        loss = dice + self.alpha * cl_dice
 
         dic = {}
-        dic["dice"] = (1 - self.alpha) * dice
+        dic["dice"] = dice
         dic["cldice"] = self.alpha * cl_dice
         return loss, dic
 

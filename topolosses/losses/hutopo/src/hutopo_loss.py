@@ -15,10 +15,15 @@ from gudhi import (
 # from ...betti_matching.src import betti_matching
 import sys, os
 
-sys.path.append(
-    "/home/computacenter/Documents/janek/topolosses/topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-barcode/build"
-)
-import betti_matching
+# used
+# sys.path.append(
+#     "/home/computacenter/Documents/janek/topolosses/topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-barcode/build"
+# )
+
+# from ....betti_matching.src/ import betti_matching  # C++ Implementation
+from topolosses.losses.betti_matching.src import betti_matching
+
+# import betti_matching
 
 from ...utils import compute_default_dice_loss
 from ...utils import FiltrationType

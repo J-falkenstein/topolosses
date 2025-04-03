@@ -18,11 +18,10 @@ if typing.TYPE_CHECKING:
 
 import sys, os
 
+# this implementation needs the specific branch
 sys.path.append(
     "/home/computacenter/Documents/janek/topolosses/topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-barcode/build"
 )
-import betti_matching  # C++ Implementation
-
 from .utils import DiceType, FiltrationType, convert_to_one_vs_rest
 
 
@@ -70,20 +69,20 @@ class MulticlassDiceWassersteinLoss(_Loss):
 
     def forward(
         self,
-        prediction: Float[torch.Tensor, "batch channel *spatial_dimensions"],
+        input: Float[torch.Tensor, "batch channel *spatial_dimensions"],
         target: Float[torch.Tensor, "batch channel *spatial_dimensions"],
         alpha: float = 0.5,
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         # Compute multiclass Wasserstein losses
         if alpha > 0:
-            wasserstein_loss, losses = self.MulticlassWassersteinloss(prediction, target)
+            wasserstein_loss, losses = self.MulticlassWassersteinloss(input, target)
             losses = {"single_matches": losses}
         else:
-            wasserstein_loss = torch.zeros(1, device=prediction.device)
+            wasserstein_loss = torch.zeros(1, device=input.device)
             losses = {}
 
         # Multiclass Dice loss
-        dice_loss, dic = self.DiceLoss(prediction, target)
+        dice_loss, dic = self.DiceLoss(input, target)
 
         losses["dice"] = dic["dice"]
         losses["cldice"] = dic["cldice"]
@@ -97,7 +96,7 @@ class MulticlassWassersteinLoss(_Loss):
         self,
         filtration_type: FiltrationType = FiltrationType.SUPERLEVEL,
         num_processes: int = 1,
-        convert_to_one_vs_rest: bool = True,
+        convert_to_one_vs_rest: bool = False,
         softmax: bool = False,
         ignore_background: bool = False,
     ) -> None:
