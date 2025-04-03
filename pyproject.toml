@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 name = "topolosses"
 version = "0.1.5"
 description = "A collection of losses and metrics for topology-preserving image segmentation."
-readme = "topolosses/README.md"
+readme = "README.md"
 authors = [
     { name = "Janek Falkenstein", email = "j.falkenstein@tum.de" }
 ]
