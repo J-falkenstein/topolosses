@@ -20,7 +20,10 @@ import sys, os
 #     "/home/computacenter/Documents/janek/topolosses/topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-barcode/build"
 # )
 
-# from ....betti_matching.src/ import betti_matching  # C++ Implementation
+
+# from ...betti_matching.src import betti_matching  # C++ Implementation
+
+# will this path also be available during build or should i do a relative path there?
 from topolosses.losses.betti_matching.src import betti_matching
 
 # import betti_matching
@@ -198,76 +201,56 @@ class HutopoLoss(_Loss):
         barcode_result_target: betti_matching.return_types.BarcodeResult,
     ) -> torch.Tensor:
 
-        # Combine all birth and death coordinates from prediction and target into one array
-        # losses_by_dim = torch.zeros(
-        #     (len(barcode_result_prediction.birth_coordinates),),
-        #     device=prediction.device,
-        #     dtype=torch.float32,
-        # )
-        # dims = len(barcode_result_prediction.birth_coordinates)
+        dims = len(barcode_result_prediction.birth_coordinates)
+        losses_by_dim = torch.zeros(dims, device=prediction.device, dtype=torch.float32)
 
-        # for dim in range(dims):
-        (
-            prediction_birth_coordinates,
-            prediction_death_coordinates,
-            target_birth_coordinates,
-            target_death_coordinates,
-        ) = [
+        for dim in range(dims):
             (
+                prediction_birth_coordinates,
+                prediction_death_coordinates,
+                target_birth_coordinates,
+                target_death_coordinates,
+            ) = [
                 torch.tensor(array, device=prediction.device, dtype=torch.long)
-                if array.strides[-1] > 0
-                else torch.zeros(0, len(prediction.shape), device=prediction.device, dtype=torch.long)
-            )
-            for array in [
-                barcode_result_prediction.birth_coordinates,
-                barcode_result_prediction.death_coordinates,
-                barcode_result_target.birth_coordinates,
-                barcode_result_target.death_coordinates,
+                for array in [
+                    barcode_result_prediction.birth_coordinates[dim],
+                    barcode_result_prediction.death_coordinates[dim],
+                    barcode_result_target.birth_coordinates[dim],
+                    barcode_result_target.death_coordinates[dim],
+                ]
             ]
-        ]
 
-        # (M, 2) tensor of persistence pairs for prediction
-        prediction_pairs = torch.stack(
-            [
-                prediction[tuple(coords[:, i] for i in range(coords.shape[1]))]
-                for coords in [prediction_birth_coordinates, prediction_death_coordinates]
-            ],
-            dim=1,
-        )
-        # (M, 2) tensor of persistence pairs for target
-        target_pairs = torch.stack(
-            [
-                target[tuple(coords[:, i] for i in range(coords.shape[1]))]
-                for coords in [target_birth_coordinates, target_death_coordinates]
-            ],
-            dim=1,
-        )
+            # (M, 2) tensor of persistence pairs for prediction
+            prediction_pairs = torch.stack(
+                [
+                    prediction[tuple(coords[:, i] for i in range(coords.shape[1]))]
+                    for coords in [prediction_birth_coordinates, prediction_death_coordinates]
+                ],
+                dim=1,
+            )
+            # (M, 2) tensor of persistence pairs for target
+            target_pairs = torch.stack(
+                [
+                    target[tuple(coords[:, i] for i in range(coords.shape[1]))]
+                    for coords in [target_birth_coordinates, target_death_coordinates]
+                ],
+                dim=1,
+            )
 
-        losses_matched_by_dim = []
-        losses_unmatched_by_dim = []
-
-        for prediction_pairs_dim, target_pairs_dim in zip(
-            torch.split(prediction_pairs, barcode_result_prediction.num_pairs_by_dim.tolist()),
-            torch.split(target_pairs, barcode_result_target.num_pairs_by_dim.tolist()),
-        ):
             _, matching = wasserstein.wasserstein_distance(
-                prediction_pairs_dim.detach().cpu(),
-                target_pairs_dim.detach().cpu(),
-                matching=True,
-                keep_essential_parts=False,
+                prediction_pairs.detach().cpu(), target_pairs.detach().cpu(), matching=True, keep_essential_parts=False
             )  # type: ignore
             matching = torch.tensor(matching.reshape(-1, 2), device=prediction.device, dtype=torch.long)
 
             matched_pairs = matching[(matching[:, 0] >= 0) & (matching[:, 1] >= 0)]
-            loss_matched = ((prediction_pairs_dim[matched_pairs[:, 0]] - target_pairs_dim[matched_pairs[:, 1]]) ** 2).sum()  # type: ignore
-            prediction_pairs_unmatched = prediction_pairs_dim[matching[matching[:, 1] == -1][:, 0]]
-            target_pairs_unmatched = target_pairs_dim[matching[matching[:, 0] == -1][:, 1]]
+            loss_matched = ((prediction_pairs[matched_pairs[:, 0]] - target_pairs[matched_pairs[:, 1]]) ** 2).sum()  # type: ignore
+            prediction_pairs_unmatched = prediction_pairs[matching[matching[:, 1] == -1][:, 0]]
+            target_pairs_unmatched = target_pairs[matching[matching[:, 0] == -1][:, 1]]
             loss_unmatched = 0.5 * (
                 ((prediction_pairs_unmatched[:, 0] - prediction_pairs_unmatched[:, 1]) ** 2).sum()
                 + ((target_pairs_unmatched[:, 0] - target_pairs_unmatched[:, 1]) ** 2).sum()
             )  # type: ignore
 
-            losses_matched_by_dim.append(loss_matched)
-            losses_unmatched_by_dim.append(loss_unmatched)
+            losses_by_dim[dim] = loss_matched + loss_unmatched
 
-        return (sum(losses_matched_by_dim) + sum(losses_unmatched_by_dim)).reshape(1)
+        return torch.sum(losses_by_dim).reshape(1)
