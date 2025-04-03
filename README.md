@@ -17,11 +17,12 @@ pip install -i https://test.pypi.org/simple/ topolosses==0.1.2
 
 ## Usage
 
-Import the desired loss functions:
+Import the desired loss functions and implement the loss functions like any standard PyTorch loss:
 
 ```python
 from topolosses.losses import CLDiceLoss, DiceLoss, BettiMatchingLoss
 
+# Create a c CLDice loss (which itself combines with Dice)
 clDiceLoss = CLDiceLoss(
     softmax=True,
     include_background=True,
@@ -36,7 +37,15 @@ clDiceLoss = CLDiceLoss(
     ),
 )
 
-result = BettiMatchingLoss(**input_param, alpha=0.5, softmax=True, base_loss=clDiceLoss).forward(**input_data)
+# Combine topological (BettiMatchingLoss) with base component (CLDiceLoss)
+loss = BettiMatchingLoss(
+    **input_param,
+    alpha=0.5,  # Weight for the topological component
+    softmax=True,
+    base_loss=clDiceLoss
+)
+
+result = loss.forward(prediction, target)
 ```
 
 ## Common Arguments for Loss Functions
@@ -61,7 +70,7 @@ result = BettiMatchingLoss(**input_param, alpha=0.5, softmax=True, base_loss=clD
 - **`base_loss`** (_Loss, optional):  
   The base loss function used with the topology-aware component. Default: `None`.
 
-> **Note**: Each loss function also has specific arguments that are unique to its behavior. These are documented within the code using docstrings, and can be easily accessed using Python's `help()` function or by exploring the source code.
+> **Note**: Each loss function also has specific arguments. These are documented within the code using docstrings, and can be easily accessed using Python's `help()` function or by exploring the source code.
 
 
 ## Folder Structure
