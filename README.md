@@ -1,6 +1,5 @@
-# topolosses
-
-This is the readme used for the github repo. Hence, the entire project including the setup and test files. 
+<!-- This is the readme used for the github repo and later not the one for pypi. Hence, the entire project including the setup and test files.  
+currently it is the only readme and used also for pypi -->
 
 # topolosses
 
