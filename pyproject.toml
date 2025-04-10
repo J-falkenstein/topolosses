@@ -23,7 +23,8 @@ dependencies = [
     "scipy",
     "numpy",
     "gudhi", 
-    "POT" # import ot somehow this is used in gudhi but not a requirement
+    "POT", # import ot somehow this is used in gudhi but not a requirement
+    "torchvision"
 ]
 # Additional Libraries:
 # - `eigen3` and `boost` are header-only and don't require installation by user
