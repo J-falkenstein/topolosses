@@ -14,7 +14,7 @@ from losses_original.utils import convert_to_one_vs_rest
 # from losses_original.mosin import MulticlassMOSIN, MulticlassDiceMOSIN
 
 # sys.path needs to be added if using local implementations otherwise looking for the package
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from topolosses.losses import MosinLoss, DiceLoss, CLDiceLoss
 
 
