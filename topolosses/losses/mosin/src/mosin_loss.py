@@ -31,12 +31,16 @@ class MosinLoss(_Loss):
 
         super(MosinLoss, self).__init__()
 
-        self.vgg = torchvision.models.vgg19(torchvision.models.VGG19_Weights.IMAGENET1K_V1).features.to("cuda")
-        self.vgg.eval()
-        self.vgg.requires_grad_(False)
-        # Define the layers we want to extract features from
+        # TODO add parameters to allow the user to choose model
+        # requires minimum image size of 32x32 pixels
+        self.vgg = torchvision.models.vgg19(weights=torchvision.models.VGG19_Weights.IMAGENET1K_V1).features
         self.feature_layers = [2, 7, 16]
         self.layer_names = ["conv1_2", "conv2_2", "conv3_4"]
+        self.activation = {}
+        for i, name in zip(self.feature_layers, self.layer_names):
+            self.vgg[i].register_forward_hook(self.get_activation(name))
+        self.vgg.eval()
+        self.vgg.requires_grad_(False)
 
         self.include_background = include_background
         self.alpha = alpha
@@ -99,11 +103,12 @@ class MosinLoss(_Loss):
 
         mosin_loss = torch.tensor(0.0)
         if self.alpha > 0:
+            self.vgg.to(input.device)
             mosin_loss = self.compute_mosin_loss(
                 input[:, starting_class:].float(),
                 target[:, starting_class:].float(),
             )
-            mosin_loss = torch.mean(torch.concatenate(mosin_loss))
+            # mosin_loss = torch.mean(torch.concatenate(mosin_loss))
 
         total_loss = mosin_loss if not self.use_base_loss else base_loss + self.alpha * mosin_loss
 
@@ -127,11 +132,16 @@ class MosinLoss(_Loss):
 
         return loss
 
+    def get_activation(self, name):
+        """Hook to save activation for a given layer"""
+
+        def hook(model, input, output):
+            self.activation[name] = output
+
+        return hook
+
     def get_features(self, x):
         """Extract features from specified VGG layers"""
-        features = {}
-        for i, (name, layer) in enumerate(self.vgg.named_children()):
-            x = layer(x)
-            if i in self.feature_layers:
-                features[self.layer_names[self.feature_layers.index(i)]] = x
-        return features
+        self.activation = {}  # Clear previous activations
+        self.vgg(x)  # Forward pass through VGG
+        return self.activation.copy()
