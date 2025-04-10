@@ -11,7 +11,14 @@ from ...utils import compute_default_dice_loss
 
 
 class MosinLoss(_Loss):
-    """TODO"""
+    """A topology-aware loss function for curvilinear structure delineation using perceptual features.
+
+    The loss has been defined in:
+        Mosinska et al. (2018) Beyond the Pixel-Wise Loss for Topology-Aware Delineation.
+
+    This loss uses a pre-trained VGG19 network to extract multi-level features from predictions and targets,
+    comparing them to enforce topological consistency. By default, it combines with a pixel-wise base loss.
+    """
 
     def __init__(
         self,
@@ -22,7 +29,24 @@ class MosinLoss(_Loss):
         use_base_loss: bool = True,
         base_loss: Optional[_Loss] = None,
     ) -> None:
-        """TODO"""
+        """
+        Args:
+            include_background (bool): If `True`, includes the background class in feature extraction.
+                Defaults to `False`.
+            alpha (float): Weighting factor for combining the base loss and the topology loss
+                (i.e.: base_loss + alpha*topology_loss). Defaults to 0.5.
+            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the loss.
+                Sigmoid is not applied before passing it to a custom base loss function. Defaults to `False`.
+            softmax (bool): If `True`, applies a softmax activation to the input before computing the loss.
+                Softmax is not applied before passing it to a custom base loss function. Defaults to `False`.
+            use_base_loss (bool): If `False`, the loss only consists of the topology component.
+                The base_loss and alpha will be ignored if this flag is set to false. Defaults to `True`.
+            base_loss (_Loss, optional): The base loss function to be used alongside the topology loss.
+                Defaults to `None`, meaning a standard cross-entropy loss will be used.
+
+        Raises:
+            ValueError: If more than one of [sigmoid, softmax] is set to True.
+        """
         if sum([sigmoid, softmax]) > 1:
             raise ValueError(
                 "At most one of [sigmoid, softmax] can be set to True. "
@@ -31,8 +55,8 @@ class MosinLoss(_Loss):
 
         super(MosinLoss, self).__init__()
 
-        # TODO add parameters to allow the user to choose model
-        # requires minimum image size of 32x32 pixels
+        # TODO ask authors if it makes sense to allow the users to use other models
+        # TODO think about adding this
         self.vgg = torchvision.models.vgg19(weights=torchvision.models.VGG19_Weights.IMAGENET1K_V1).features
         self.feature_layers = [2, 7, 16]
         self.layer_names = ["conv1_2", "conv2_2", "conv3_4"]
@@ -68,10 +92,12 @@ class MosinLoss(_Loss):
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
             ValueError: If softmax=True and the number of channels for the prediction is 1.
-
+            ValueError: If the input dimension is smaller than 32x32.
         """
         if target.shape != input.shape:
             raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
+        if input.shape[2] < 32 or input.shape[3] < 32:
+            raise ValueError(f"input dimensions must be at least 32x32, got {input.shape[2]}x{input.shape[3]}")
 
         starting_class = 0 if self.include_background else 1
         num_classes = input.shape[1]
@@ -87,7 +113,7 @@ class MosinLoss(_Loss):
                 )
                 starting_class = 0
 
-        # Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function
+        # Avoiding applying transformations sigmoid and softmax before passing the input to the base loss function
         # These settings have to be controlled by the user when initializing the base loss function
         base_loss = torch.tensor(0.0)
         if self.alpha < 1 and self.use_base_loss and self.base_loss is not None:
@@ -103,12 +129,10 @@ class MosinLoss(_Loss):
 
         mosin_loss = torch.tensor(0.0)
         if self.alpha > 0:
-            self.vgg.to(input.device)
             mosin_loss = self.compute_mosin_loss(
                 input[:, starting_class:].float(),
                 target[:, starting_class:].float(),
             )
-            # mosin_loss = torch.mean(torch.concatenate(mosin_loss))
 
         total_loss = mosin_loss if not self.use_base_loss else base_loss + self.alpha * mosin_loss
 

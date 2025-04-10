@@ -58,25 +58,24 @@ class MulticlassDiceMOSIN(_Loss):
 
     def forward(
         self,
-        prediction: Float[torch.Tensor, "batch channel *spatial_dimensions"],
+        input: Float[torch.Tensor, "batch channel *spatial_dimensions"],
         target: Float[torch.Tensor, "batch channel *spatial_dimensions"],
         alpha: float = 0.5,
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         # Compute multiclass MOSIN losses
         if alpha > 0:
-            mosin_loss, losses = self.MulticlassMOSINLoss(prediction, target)
+            mosin_loss, losses = self.MulticlassMOSINLoss(input, target)
             losses = {"single_matches": losses}
         else:
-            mosin_loss = torch.zeros(1, device=prediction.device)
+            mosin_loss = torch.zeros(1, device=input.device)
             losses = {}
 
         # Multiclass Dice loss
-        dice_loss, dic = self.DiceLoss(prediction, target)
+        dice_loss, dic = self.DiceLoss(input, target)
 
         losses["dice"] = dic["dice"]
         losses["cldice"] = dic["cldice"]
         losses["mosin"] = alpha * mosin_loss.item()
-
         return dice_loss + alpha * mosin_loss, losses
 
 
