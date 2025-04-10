@@ -4,7 +4,7 @@ build-backend = "scikit_build_core.build"
 
 [project]
 name = "topolosses"
-version = "0.1.51"
+version = "0.1.6"
 description = "A collection of losses and metrics for topology-preserving image segmentation."
 readme = "README.md"
 authors = [

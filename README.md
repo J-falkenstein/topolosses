@@ -3,7 +3,7 @@ currently it is the only readme and used also for pypi -->
 
 # topolosses
 
-Topolosses is a Python package providing topology-aware losses for segmentation tasks. It includes losses that improve topological properties in segmentation models, such as `DiceLoss`, `TopographLoss`, and `BettiMatchingLoss`.
+Topolosses is a Python package providing topology-aware losses for segmentation tasks. It includes losses that improve topological properties in segmentation models, such as `DiceLoss`, `TopographLoss`, `BettiMatchingLoss`, `HutopoLoss`, and `MosinLoss`.
 
 ## Installation
 
