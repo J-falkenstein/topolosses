@@ -237,6 +237,7 @@ class HutopoLoss(_Loss):
                 dim=1,
             )
 
+            # TODO set order and internal_p to 2
             _, matching = wasserstein.wasserstein_distance(
                 prediction_pairs.detach().cpu(), target_pairs.detach().cpu(), matching=True, keep_essential_parts=False
             )  # type: ignore

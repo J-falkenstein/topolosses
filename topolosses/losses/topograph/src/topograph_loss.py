@@ -1,9 +1,8 @@
 from __future__ import annotations
 import warnings
-from typing import List, Optional
+from typing import Optional
 
 import torch
-from torch import Tensor
 from torch.nn.modules.loss import _Loss
 import torch.nn.functional as F
 import networkx as nx
