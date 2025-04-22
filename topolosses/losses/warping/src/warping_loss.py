@@ -17,13 +17,14 @@ from ...utils import compute_default_dice_loss
 
 
 class WarpingLoss(_Loss):
-    """A topology-aware loss function for curvilinear structure delineation using perceptual features.
+    """A topology-aware loss function that emphasizes structurally critical pixels during segmentation.
 
     The loss has been defined in:
-        Mosinska et al. (2018) Beyond the Pixel-Wise Loss for Topology-Aware Delineation.
+        Hu (2022) Structure-Aware Image Segmentation with Homotopy Warping (NeurIPS).
 
-    This loss uses a pre-trained VGG19 network to extract multi-level features from predictions and targets,
-    comparing them to enforce topological consistency. By default, it combines with a pixel-wise base loss.
+    This loss identifies topologically sensitive false positives and false negatives using distance transforms,
+    then selectively applies a cross-entropy loss on these critical points to preserve object connectivity
+    and structure. It is especially suited for applications requiring high topological fidelity.
     """
 
     def __init__(
@@ -93,8 +94,7 @@ class WarpingLoss(_Loss):
 
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
-            ValueError: If softmax=True and the number of channels for the prediction is 1.
-            ValueError: If the input dimension is smaller than 32x32.
+            ValueError: If the number of classe is smaller than 2.
         """
         if target.shape != input.shape:
             raise ValueError(f"ground truth has different shape ({target.shape}) from input ({input.shape})")
@@ -147,6 +147,7 @@ class WarpingLoss(_Loss):
         return total_loss
 
     def decide_simple_point(self, target, x, y):
+        """Flip the pixel at (x, y) if it’s a topologically ‘simple’ point in the 3×3 patch."""
         if x < 1 or y < 1 or x >= target.shape[0] - 1 or y >= target.shape[1] - 1:
             return target  # TODO: decide what to do
         patch = target[x - 1 : x + 2, y - 1 : y + 2]
@@ -161,6 +162,7 @@ class WarpingLoss(_Loss):
         return target
 
     def update_simple_point(self, distance, target):
+        """Iterate over pixels by descending distance, flipping any simple points in the target."""
         non_zero_distance = np.nonzero(distance)
         idx = np.unravel_index(np.argsort(-distance, axis=None), distance.shape)
 
@@ -173,6 +175,7 @@ class WarpingLoss(_Loss):
         return target
 
     def compute_warping_loss(self, input, target):
+        """Compute cross-entropy loss only on pixels critical to preserving segmentation topology."""
         target = target.float()
         assert len(target.shape) == 4
         assert len(input.shape) == 4
