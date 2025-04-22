@@ -2,31 +2,25 @@ from __future__ import annotations
 import warnings
 from typing import List, Optional
 
-import enum
 import torch
 from torch.nn.modules.loss import _Loss
-from functools import partial
 import numpy as np
 from gudhi import (
     wasserstein,
-)  # -> TODO need as requirement of package, and for some reason it depends on ot or POT which is not installed when gudhi is installed
+)
 
 # TODO adjust that this package is in a plcace where betti matching and hutopo can accesss it
 # from ...betti_matching.src import betti_matching
 import sys, os
 
-# used
 # sys.path.append(
 #     "/home/computacenter/Documents/janek/topolosses/topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-barcode/build"
 # )
-
-
 # from ...betti_matching.src import betti_matching  # C++ Implementation
+# import betti_matching
 
 # will this path also be available during build or should i do a relative path there?
 from topolosses.losses.betti_matching.src import betti_matching
-
-# import betti_matching
 
 from ...utils import compute_default_dice_loss
 from ...utils import FiltrationType
@@ -237,9 +231,14 @@ class HutopoLoss(_Loss):
                 dim=1,
             )
 
-            # TODO set order and internal_p to 2
+            # TODO check if the adjustments to order=2 and internal_p=2 is correct
             _, matching = wasserstein.wasserstein_distance(
-                prediction_pairs.detach().cpu(), target_pairs.detach().cpu(), matching=True, keep_essential_parts=False
+                prediction_pairs.detach().cpu(),
+                target_pairs.detach().cpu(),
+                order=2,
+                internal_p=2,
+                matching=True,
+                keep_essential_parts=False,
             )  # type: ignore
             matching = torch.tensor(matching.reshape(-1, 2), device=prediction.device, dtype=torch.long)
 
