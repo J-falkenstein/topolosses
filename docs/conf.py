@@ -10,6 +10,7 @@ import os, sys
 
 sys.path.insert(0, os.path.abspath(".."))
 
+
 project = "topolosses"
 copyright = "2025, Author"
 author = "Author"
@@ -22,6 +23,12 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
+]
+
+autodoc_mock_imports = [
+    "Topograph",
+    "_topograph",
+    "betti_matching",
 ]
 
 templates_path = ["_templates"]
