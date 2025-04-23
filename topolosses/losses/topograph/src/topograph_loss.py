@@ -25,10 +25,10 @@ from ...utils import (
     fill_adj_matr,
     new_compute_diag_diffs,
     new_compute_diffs,
+    compute_default_dice_loss,
 )
 from scipy.ndimage import label
 from scipy.cluster.hierarchy import DisjointSet
-from ...utils import compute_default_dice_loss
 
 
 def reverse_pairing(pairing: int) -> tuple[int, int]:

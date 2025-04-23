@@ -27,7 +27,14 @@ from ...utils import FiltrationType
 
 
 class HutopoLoss(_Loss):
-    """TODO"""
+    """Topology-preserving segmentation loss combining pixel-wise and topological objectives.
+
+    This loss has been defined in:
+        Hu et al. (2019) "Topology-Preserving Deep Image Segmentation" (NeurIPS),
+
+    This loss penalizes discrepancies between persistence diagrams of predicted and ground-truth segmentations using a Wasserstein distance on birth–death pairs.
+    This loss can be used standalone or combined with a base segmentation loss via a weighting factor \u03b1.
+    """
 
     def __init__(
         self,
@@ -40,7 +47,33 @@ class HutopoLoss(_Loss):
         use_base_loss: bool = True,
         base_loss: Optional[_Loss] = None,
     ) -> None:
-        """TODO"""
+        """
+        Args:
+            filtration_type (FiltrationType or string):
+                Choose how to build the topological filtration on probability maps:
+                  - SUBLEVEL:    sublevel-set on raw output.
+                  - SUPERLEVEL:  sublevel-set on inverted output (1–p).
+                  - BOTHLEVELS:  both SUBLEVEL and SUPERLEVEL via concatenation.
+                Defaults to SUPERLEVEL.
+            num_processes (int):
+                Number of parallel processes for persistent homology computations. Higher values may improve throughput. Defaults to 1.
+            include_background (bool):
+                Whether to include the background channel when computing topological loss. If False, only foreground classes are used. Defaults to False.
+            alpha (float):
+                Weight between the base segmentation loss and the topological loss. Total loss = base_loss + alpha * topo_loss. Defaults to 0.5.
+            softmax (bool):
+                If True, applies softmax to network outputs before loss computation. Mutually exclusive with sigmoid. Defaults to False.
+            sigmoid (bool):
+                If True, applies sigmoid activation to network outputs before loss computation. Mutually exclusive with softmax. Defaults to False.
+            use_base_loss (bool):
+                Whether to include a pixel-wise base loss component. If False, only the topological term is used and alpha is ignored. Defaults to True.
+            base_loss (Optional[_Loss]):
+                Custom base loss function (e.g., DiceLoss, CrossEntropy). If None and use_base_loss=True, a default Dice loss is used. Defaults to None.
+
+        Raises:
+            ValueError: If both sigmoid and softmax are set to True simultaneously.
+            ValueError: If `filtration_type` is provided as a string but does not match any of the valid options ('SUPERLEVEL', 'SUBLEVEL', 'BOTHLEVELS').
+        """
         if sum([sigmoid, softmax]) > 1:
             raise ValueError(
                 "At most one of [sigmoid, softmax] can be set to True. "
@@ -135,8 +168,9 @@ class HutopoLoss(_Loss):
         target: torch.Tensor,
     ) -> List[torch.Tensor]:
         # Flatten out channel dimension to treat each channel as a separate instance for multiclass prediction
-        # TODO this snippet is used in hutopo and betti matching so far, might be smart to move it either outside of these functions or to a parent class
+        # TODO this line is used in hutopo and betti matching so far, might be smart to move it either outside of these functions or to a parent class
         prediction = torch.flatten(prediction, start_dim=0, end_dim=1).unsqueeze(1)
+
         target = torch.flatten(target, start_dim=0, end_dim=1).unsqueeze(1)
         if self.filtration_type == FiltrationType.SUPERLEVEL:
             # Using (1 - ...) to allow binary sorting optimization on the label, which expects values [0, 1]
