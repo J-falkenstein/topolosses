@@ -15,9 +15,9 @@ import torch.multiprocessing as mp
 # C++ implementation Topograph, can be installed locally as own package with the setup file
 # during the build process for the distribution file a similar package is build using the cmake file.
 # TODO make a local build of topograph that can be imported the same way during dev as during build process
-# import Topograph as _topograph
+import Topograph as _topograph
 
-from . import _topograph
+# from . import _topograph
 
 from ...utils import (
     AggregationType,
@@ -532,8 +532,8 @@ class TopographLoss(_Loss):
         use_c: bool = True,
         sphere: bool = False,
         eight_connectivity: bool = True,
-        aggregation=AggregationType.MEAN,
-        thres_distr=ThresholdDistribution.NONE,
+        aggregation: AggregationType | str = AggregationType.MEAN,
+        thres_distr: ThresholdDistribution | str = ThresholdDistribution.NONE,
         thres_var: float = 0.0,
         include_background: bool = False,
         alpha: float = 0.1,
@@ -551,7 +551,7 @@ class TopographLoss(_Loss):
             eight_connectivity (bool): Determines whether to use 8-connectivity for foreground components (i.e., diagonal adjacent pixels form a single connected component)
                 versus 4-connectivity when building the component graph. Defaults to 8-connectivity.
             aggregation (AggregationType): Specifies the aggregation method for loss calculation across the batch.
-                Possible values are mean, sum, max, min, ce, rms, and leg.
+                Possible values are mean, sum, max, min, ce, rms, and leg. Defaults to mean
             thres_distr (ThresholdDistribution): Determines the distribution used for sampling the binarization threshold.
                 Possible values are uniform and gaussian. Defaults to None which is a constant binarization threshold of 0.5.
             thres_var (float):  If a thres_distribution is set, this varibale controls the magnitude of random threshold variation applied during loss computation,
@@ -587,9 +587,13 @@ class TopographLoss(_Loss):
         self.use_c = use_c
         self.sphere = sphere
         self.eight_connectivity = eight_connectivity
-        self.thres_distr = thres_distr
+        self.thres_distr = (
+            ThresholdDistribution(thres_distr) if not isinstance(thres_distr, ThresholdDistribution) else thres_distr
+        )
         self.thres_var = thres_var
-        self.aggregation = aggregation
+        self.aggregation = (
+            AggregationType(aggregation) if not isinstance(aggregation, AggregationType) else aggregation
+        )
         self.include_background = include_background
         self.alpha = alpha
         self.softmax = softmax

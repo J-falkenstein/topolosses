@@ -38,7 +38,7 @@ class HutopoLoss(_Loss):
 
     def __init__(
         self,
-        filtration_type: FiltrationType = FiltrationType.SUPERLEVEL,
+        filtration_type: FiltrationType | str = FiltrationType.SUPERLEVEL,
         num_processes: int = 1,
         include_background: bool = False,
         alpha: float = 0.5,
@@ -51,9 +51,9 @@ class HutopoLoss(_Loss):
         Args:
             filtration_type (FiltrationType or string):
                 Choose how to build the topological filtration on probability maps:
-                  - SUBLEVEL:    sublevel-set on raw output.
-                  - SUPERLEVEL:  sublevel-set on inverted output (1–p).
-                  - BOTHLEVELS:  both SUBLEVEL and SUPERLEVEL via concatenation.
+                  - `sublevel`:    sublevel-set on raw output.
+                  - `superlevel`:  sublevel-set on inverted output (1–p).
+                  - `bothlevels`:  both SUBLEVEL and SUPERLEVEL via concatenation.
                 Defaults to SUPERLEVEL.
             num_processes (int):
                 Number of parallel processes for persistent homology computations. Higher values may improve throughput. Defaults to 1.
@@ -82,13 +82,9 @@ class HutopoLoss(_Loss):
 
         super(HutopoLoss, self).__init__()
 
-        if isinstance(filtration_type, str):
-            try:
-                filtration_type = FiltrationType(filtration_type)
-            except ValueError:
-                raise ValueError(
-                    f"Invalid filtration_type '{filtration_type}'. Expected one of {[e.value for e in FiltrationType]}"
-                )
+        self.filtration_type = (
+            FiltrationType(filtration_type) if not isinstance(filtration_type, FiltrationType) else filtration_type
+        )
         self.filtration_type = filtration_type
         self.num_processes = num_processes
         self.include_background = include_background

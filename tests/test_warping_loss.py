@@ -11,8 +11,6 @@ from parameterized import parameterized
 
 from losses_original.utils import convert_to_one_vs_rest
 
-from losses_original.warping import HomotopyWarpingLoss
-
 # sys.path needs to be added if using local implementations otherwise looking for the package
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from topolosses.losses import WarpingLoss, DiceLoss, CLDiceLoss
