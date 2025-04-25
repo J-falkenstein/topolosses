@@ -21,9 +21,8 @@ topolosses.losses.utils module
 ------------------------------
 
 .. automodule:: topolosses.losses.utils
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   :members: compute_default_dice_loss
+   :noindex:
 
 Module contents
 ---------------
