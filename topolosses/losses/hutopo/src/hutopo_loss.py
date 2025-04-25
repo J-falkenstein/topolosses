@@ -148,26 +148,28 @@ class HutopoLoss(_Loss):
 
         hutopo_loss = torch.tensor(0.0)
         if self.alpha > 0:
-            hutopo_loss = self.compute_wasserstein_loss(
+            hutopo_loss = self.compute_hutopo_loss(
                 input[:, starting_class:].float(),
                 target[:, starting_class:].float(),
             )
-            hutopo_loss = torch.mean(torch.concatenate(hutopo_loss))
 
         total_loss = hutopo_loss if not self.use_base_loss else base_loss + self.alpha * hutopo_loss
 
         return total_loss
 
-    def compute_wasserstein_loss(
+    def compute_hutopo_loss(
         self,
         prediction: torch.Tensor,
         target: torch.Tensor,
     ) -> List[torch.Tensor]:
+        """Compute the hutopo loss as the topological discrepancy by matching prediction and target persistence
+        diagrams via a squared-L2 Wasserstein distance on birth–death pairs."""
+
         # Flatten out channel dimension to treat each channel as a separate instance for multiclass prediction
         # TODO this line is used in hutopo and betti matching so far, might be smart to move it either outside of these functions or to a parent class
         prediction = torch.flatten(prediction, start_dim=0, end_dim=1).unsqueeze(1)
-
         target = torch.flatten(target, start_dim=0, end_dim=1).unsqueeze(1)
+
         if self.filtration_type == FiltrationType.SUPERLEVEL:
             # Using (1 - ...) to allow binary sorting optimization on the label, which expects values [0, 1]
             prediction = 1 - prediction
@@ -215,7 +217,7 @@ class HutopoLoss(_Loss):
                 )
                 current_instance_index += 1
 
-        return losses
+        return torch.mean(torch.concatenate(losses))
 
     def _wasserstein_loss(
         self,
@@ -224,6 +226,7 @@ class HutopoLoss(_Loss):
         barcode_result_prediction: betti_matching.return_types.BarcodeResult,
         barcode_result_target: betti_matching.return_types.BarcodeResult,
     ) -> torch.Tensor:
+        """Compute the squared‐L2 Wasserstein distance between two persistence diagrams."""
 
         dims = len(barcode_result_prediction.birth_coordinates)
         losses_by_dim = torch.zeros(dims, device=prediction.device, dtype=torch.float32)

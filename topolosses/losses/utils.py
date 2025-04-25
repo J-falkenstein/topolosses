@@ -6,6 +6,9 @@ import numpy as np
 from typing import List, Optional
 import torch.nn.functional as F
 
+# to only expose this function in the spynx documentation
+__all__ = ["compute_default_dice_loss"]
+
 
 def compute_default_dice_loss(
     input: torch.Tensor,

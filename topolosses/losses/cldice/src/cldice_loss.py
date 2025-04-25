@@ -142,11 +142,9 @@ class CLDiceLoss(_Loss):
 
         cl_dice = torch.tensor(0.0)
         if self.alpha > 0:
-            cl_dice = compute_cldice_loss(
+            cl_dice = self.compute_cldice_loss(
                 input[:, starting_class:].float(),
                 target[:, starting_class:].float(),
-                self.smooth,
-                self.iter_,
                 reduce_axis,
             )
 
@@ -154,49 +152,47 @@ class CLDiceLoss(_Loss):
 
         return total_loss  # , {"base": (1 - self.alpha) * base_loss, "cldice": self.alpha * cl_dice}
 
+    def compute_cldice_loss(
+        self,
+        input: torch.Tensor,
+        target: torch.Tensor,
+        reduce_axis: List[int],
+    ) -> torch.Tensor:
+        """Computes the CLDice loss.
 
-def compute_cldice_loss(
-    input: torch.Tensor,
-    target: torch.Tensor,
-    smooth: float,
-    iter_: int,
-    reduce_axis: List[int],
-) -> torch.Tensor:
-    """Computes the CLDice loss.
+        Args:
+            input (torch.Tensor): The predicted segmentation map with shape (N, C, ...),
+                                where N is batch size, C is the number of classes.
+            target (torch.Tensor): The ground truth segmentation map with the same shape as `input`.
+            smooth (float): Smoothing factor to avoid division by zero.
+            iter_ (int): Number of iterations for soft skeleton computation.
+            reduce_axis (List[int]): The axes along which to reduce the loss computation.
+                                It decides whether to sum the intersection and union areas over the batch dimension before the dividing.
 
-    Args:
-        input (torch.Tensor): The predicted segmentation map with shape (N, C, ...),
-                            where N is batch size, C is the number of classes.
-        target (torch.Tensor): The ground truth segmentation map with the same shape as `input`.
-        smooth (float): Smoothing factor to avoid division by zero.
-        iter_ (int): Number of iterations for soft skeleton computation.
-        reduce_axis (List[int]): The axes along which to reduce the loss computation.
-                            It decides whether to sum the intersection and union areas over the batch dimension before the dividing.
+        Returns:
+            torch.Tensor: The CLDice loss as a scalar tensor.
+        """
 
-    Returns:
-        torch.Tensor: The CLDice loss as a scalar tensor.
-    """
+        pred_skeletons = soft_skel(input, self.iter_)
+        target_skeletons = soft_skel(target, self.iter_)
 
-    pred_skeletons = soft_skel(input, iter_)
-    target_skeletons = soft_skel(target, iter_)
+        tprec = (
+            torch.sum(
+                torch.multiply(pred_skeletons, target),
+                dim=reduce_axis,
+            )
+            + self.smooth
+        ) / (torch.sum(pred_skeletons, dim=reduce_axis) + self.smooth)
 
-    tprec = (
-        torch.sum(
-            torch.multiply(pred_skeletons, target),
-            dim=reduce_axis,
-        )
-        + smooth
-    ) / (torch.sum(pred_skeletons, dim=reduce_axis) + smooth)
+        tsens = (
+            torch.sum(
+                torch.multiply(target_skeletons, input),
+                dim=reduce_axis,
+            )
+            + self.smooth
+        ) / (torch.sum(target_skeletons, dim=reduce_axis) + self.smooth)
 
-    tsens = (
-        torch.sum(
-            torch.multiply(target_skeletons, input),
-            dim=reduce_axis,
-        )
-        + smooth
-    ) / (torch.sum(target_skeletons, dim=reduce_axis) + smooth)
-
-    return torch.mean(1.0 - 2.0 * (tprec * tsens) / (tprec + tsens))
+        return torch.mean(1.0 - 2.0 * (tprec * tsens) / (tprec + tsens))
 
 
 def soft_erode(img: torch.Tensor) -> torch.Tensor:

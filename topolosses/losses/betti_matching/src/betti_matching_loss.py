@@ -173,7 +173,7 @@ class BettiMatchingLoss(_Loss):
 
         betti_matching_loss = torch.tensor(0.0)
         if self.alpha > 0:
-            betti_matching_loss, losses = self._compute_batched_betti_matching_loss(
+            betti_matching_loss, _ = self.compute_batched_betti_matching_loss(
                 input[:, starting_class:].float(),
                 target[:, starting_class:].float(),
             )
@@ -182,7 +182,7 @@ class BettiMatchingLoss(_Loss):
 
         return total_loss
 
-    def _compute_batched_betti_matching_loss(
+    def compute_batched_betti_matching_loss(
         self, input: torch.Tensor, target: torch.Tensor
     ) -> tuple[torch.Tensor, list[torch.Tensor]]:
         """Compute the Betti matching loss for batched input and target tensors.
@@ -248,7 +248,7 @@ class BettiMatchingLoss(_Loss):
 
             for result_arrays in results:
                 losses.append(
-                    self._betti_matching_loss(
+                    self.betti_matching_loss(
                         input[current_instance_index].squeeze(0),
                         target[current_instance_index].squeeze(0),
                         result_arrays,
@@ -264,7 +264,7 @@ class BettiMatchingLoss(_Loss):
 
         return torch.mean(torch.concatenate(losses)), losses
 
-    def _betti_matching_loss(
+    def betti_matching_loss(
         self,
         prediction: torch.Tensor,  # *spatial_dimensions
         target: torch.Tensor,  # *spatial_dimensions

@@ -146,7 +146,7 @@ class WarpingLoss(_Loss):
 
         return total_loss
 
-    def decide_simple_point(self, target, x, y):
+    def _decide_simple_point(self, target, x, y):
         """Flip the pixel at (x, y) if it’s a topologically ‘simple’ point in the 3×3 patch."""
         if x < 1 or y < 1 or x >= target.shape[0] - 1 or y >= target.shape[1] - 1:
             return target  # TODO: decide what to do
@@ -161,7 +161,7 @@ class WarpingLoss(_Loss):
 
         return target
 
-    def update_simple_point(self, distance, target):
+    def _update_simple_point(self, distance, target):
         """Iterate over pixels by descending distance, flipping any simple points in the target."""
         non_zero_distance = np.nonzero(distance)
         idx = np.unravel_index(np.argsort(-distance, axis=None), distance.shape)
@@ -170,7 +170,7 @@ class WarpingLoss(_Loss):
             x = idx[0][len(non_zero_distance[0]) - i - 1]
             y = idx[0][len(non_zero_distance[0]) - i - 1]
 
-            target = self.decide_simple_point(target, x, y)
+            target = self._decide_simple_point(target, x, y)
 
         return target
 
@@ -200,8 +200,8 @@ class WarpingLoss(_Loss):
             fn_distance_gt = ndimage.distance_transform_edt(target_c[i, :, :]) * fn
             fp_distance_gt = ndimage.distance_transform_edt(1 - target_c[i, :, :]) * fp
 
-            target_warp = self.update_simple_point(fn_distance_gt, target_c[i, :, :])
-            target_warp = self.update_simple_point(fp_distance_gt, target_warp)
+            target_warp = self._update_simple_point(fn_distance_gt, target_c[i, :, :])
+            target_warp = self._update_simple_point(fp_distance_gt, target_warp)
 
             fn_distance_pre = (
                 ndimage.distance_transform_edt(1 - predictions_c[i, :, :]) * fn
@@ -210,8 +210,8 @@ class WarpingLoss(_Loss):
                 ndimage.distance_transform_edt(predictions_c[i, :, :]) * fp
             )  # shrink pre while keep connected
 
-            pre_warp = self.update_simple_point(fp_distance_pre, predictions_c[i, :, :])
-            pre_warp = self.update_simple_point(fn_distance_pre, pre_warp)
+            pre_warp = self._update_simple_point(fp_distance_pre, predictions_c[i, :, :])
+            pre_warp = self._update_simple_point(fn_distance_pre, pre_warp)
 
             critical_points[i, :, :] = np.logical_or(
                 np.not_equal(predictions[i, :, :], target_warp), np.not_equal(target_np[i, :, :], pre_warp)
