@@ -78,7 +78,7 @@ class BettiMatchingLoss(_Loss):
                 Typically used for binary segmentation. Default: `False`.
             softmax (bool): If `True`, applies softmax to the forward pass input before computing the topology-aware component.
                 If using the default Dice loss, the softmax-transformed input is also used. For custom base losses, the raw input is passed. Default: `False`.
-            use_base_component (bool): If `False`, the loss consists only of the topology-aware component.
+            use_base_loss (bool): If `False`, the loss consists only of the topology-aware component.
                 A forward call will return the full topology-aware component. `base_loss`, `weights`, and `alpha` will be ignored if this flag is set to `False`.
             base_loss (_Loss, optional): The base loss function to be used alongside the topology-aware loss.
                 Defaults to `None`, meaning a Dice component with default parameters will be used.
@@ -121,7 +121,7 @@ class BettiMatchingLoss(_Loss):
 
         if not self.use_base_loss:
             if base_loss is not None:
-                warnings.warn("base_loss is ignored beacuse use_base_component is set to false")
+                warnings.warn("base_loss is ignored beacuse use_base_loss is set to false")
             if self.alpha != 1:
                 warnings.warn("Alpha < 1 has no effect when no base component is used.")
 
@@ -173,7 +173,7 @@ class BettiMatchingLoss(_Loss):
 
         betti_matching_loss = torch.tensor(0.0)
         if self.alpha > 0:
-            betti_matching_loss, _ = self.compute_batched_betti_matching_loss(
+            betti_matching_loss, _ = self.compute_betti_matching_loss(
                 input[:, starting_class:].float(),
                 target[:, starting_class:].float(),
             )
@@ -182,23 +182,13 @@ class BettiMatchingLoss(_Loss):
 
         return total_loss
 
-    def compute_batched_betti_matching_loss(
+    def compute_betti_matching_loss(
         self, input: torch.Tensor, target: torch.Tensor
     ) -> tuple[torch.Tensor, list[torch.Tensor]]:
         """Compute the Betti matching loss for batched input and target tensors.
 
         Processes input and target tensors through the appropriate filtration transformations,
-        computes matching between persistence barcodes using the betti_matching module,
-        and aggregates the loss values across all instances in the batch.
-
-        Args:
-            input: Predicted segmentation tensor [B, C, *spatial_dims]
-            target: Ground truth segmentation tensor [B, C, *spatial_dims]
-
-        Returns:
-            tuple containing:
-                - Mean loss value across the batch (torch.Tensor)
-                - List of individual loss tensors for each instance (list[torch.Tensor])
+        computes matching between persistence barcodes, and aggregates the loss values across all instances in the batch.
         """
         # Flatten out channel dimension to treat each channel as a separate instance for multiclass prediction
         input = torch.flatten(input, start_dim=0, end_dim=1).unsqueeze(1)
@@ -248,7 +238,7 @@ class BettiMatchingLoss(_Loss):
 
             for result_arrays in results:
                 losses.append(
-                    self.betti_matching_loss(
+                    self._single_betti_loss(
                         input[current_instance_index].squeeze(0),
                         target[current_instance_index].squeeze(0),
                         result_arrays,
@@ -264,7 +254,7 @@ class BettiMatchingLoss(_Loss):
 
         return torch.mean(torch.concatenate(losses)), losses
 
-    def betti_matching_loss(
+    def _single_betti_loss(
         self,
         prediction: torch.Tensor,  # *spatial_dimensions
         target: torch.Tensor,  # *spatial_dimensions
@@ -277,15 +267,6 @@ class BettiMatchingLoss(_Loss):
         1. Squared differences between matched persistence pairs
         2. Penalty for unmatched features in prediction
         3. Penalty for unmatched features in target
-
-        Args:
-            prediction: Single prediction tensor [*spatial_dimensions]
-            target: Single target tensor [*spatial_dimensions]
-            betti_matching_result: Result object from betti_matching module containing
-                                coordinates of birth/death points for matched and unmatched features
-
-        Returns:
-            Single loss value as tensor of shape [1]
         """
 
         # Combine all birth and death coordinates from prediction and target into one array
