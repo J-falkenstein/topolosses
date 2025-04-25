@@ -10,9 +10,26 @@ Add your content using ``reStructuredText`` syntax. See the
 `reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
 documentation for details.
 
+Topolosses Documentation
+========================
 
-.. toctree::
-   :maxdepth: 4
-   :caption: Contents:
+Welcome to the Topolosses API reference.
 
-   topolosses
+.. autosummary::
+   :toctree: _autosummary
+   :recursive:
+
+   topolosses.losses.betti_matching
+   topolosses.losses.cldice
+   topolosses.losses.dice
+   topolosses.losses.hutopo
+   topolosses.losses.topograph
+   topolosses.losses.utils
+   topolosses.losses.warping
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

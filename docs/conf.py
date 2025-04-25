@@ -12,23 +12,27 @@ sys.path.insert(0, os.path.abspath(".."))
 
 
 project = "topolosses"
-copyright = "2025, Author"
-author = "Author"
+copyright = "2025, Janek Falkenstein"
+author = "Janek Falkenstein"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    "sphinx.ext.autosummary",
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
     "sphinx.ext.todo",
 ]
+autosummary_generate = True
 
 autodoc_mock_imports = [
+    "topolosses.losses.topograph.src._topograph",
+    "topolosses.losses.betti_matching.src.betti_matching",
     "Topograph",
-    "_topograph",
-    "betti_matching",
+    "cv2",
+    "gudhi",
 ]
 
 templates_path = ["_templates"]
