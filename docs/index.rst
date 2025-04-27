@@ -11,7 +11,7 @@ Welcome to the Topolosses API reference.
 
 .. toctree::
    :maxdepth: 1
-   :caption: Contents:
+   :caption: Losses:
 
    topolosses.losses.betti_matching
    topolosses.losses.cldice
@@ -20,9 +20,6 @@ Welcome to the Topolosses API reference.
    topolosses.losses.mosin
    topolosses.losses.topograph
    topolosses.losses.warping
-
-   topolosses.losses.utils
-
 
 Indices and tables
 ==================

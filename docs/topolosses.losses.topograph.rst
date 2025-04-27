@@ -1,8 +1,6 @@
-topolosses.losses.topograph package
+TopographLoss
 ===================================
 
-Module contents
----------------
 
 .. automodule:: topolosses.losses.topograph
    :members:

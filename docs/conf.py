@@ -23,6 +23,8 @@ extensions = [
     "sphinx.ext.napoleon",
 ]
 modindex_common_prefix = ["topolosses.losses."]
+autoclass_content = "both"
+
 
 autodoc_mock_imports = [
     "topolosses.losses.topograph.src._topograph",
