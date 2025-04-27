@@ -62,7 +62,7 @@ class MosinLoss(_Loss):
         self.layer_names = ["conv1_2", "conv2_2", "conv3_4"]
         self.activation = {}
         for i, name in zip(self.feature_layers, self.layer_names):
-            self.vgg[i].register_forward_hook(self.get_activation(name))
+            self.vgg[i].register_forward_hook(self._get_activation(name))
         self.vgg.eval()
         self.vgg.requires_grad_(False)
 
@@ -147,8 +147,8 @@ class MosinLoss(_Loss):
         prediction = prediction.expand(-1, 3, -1, -1)
         target = target.argmax(dim=1, keepdim=True).to(torch.float32).expand(-1, 3, -1, -1)
 
-        pred_features = self.get_features(prediction)
-        target_features = self.get_features(target)
+        pred_features = self._get_features(prediction)
+        target_features = self._get_features(target)
 
         loss = 0
         for layer_name in self.layer_names:
@@ -156,7 +156,7 @@ class MosinLoss(_Loss):
 
         return loss
 
-    def get_activation(self, name):
+    def _get_activation(self, name):
         """Hook to save activation for a given layer"""
 
         def hook(model, input, output):
@@ -164,7 +164,7 @@ class MosinLoss(_Loss):
 
         return hook
 
-    def get_features(self, x):
+    def _get_features(self, x):
         """Extract features from specified VGG layers"""
         self.activation = {}  # Clear previous activations
         self.vgg(x)  # Forward pass through VGG

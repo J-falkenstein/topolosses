@@ -25,8 +25,7 @@ extensions = [
     "sphinx.ext.napoleon",
 ]
 autosummary_generate = True
-modindex_common_prefix = ["topolosses.losses"]
-toc_object_entries_show_parents = "hide"
+modindex_common_prefix = ["topolosses.losses."]
 
 autodoc_mock_imports = [
     "topolosses.losses.topograph.src._topograph",

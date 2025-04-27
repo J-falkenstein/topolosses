@@ -1,8 +1,5 @@
-topolosses.losses.cldice package
+CLDiceLoss
 ================================
-
-Module contents
----------------
 
 .. automodule:: topolosses.losses.cldice
    :members:

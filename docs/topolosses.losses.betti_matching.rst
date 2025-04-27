@@ -1,8 +1,6 @@
-topolosses.losses.betti\_matching package
+Betti Matching Loss
 =========================================
 
-Module contents
----------------
 
 .. automodule:: topolosses.losses.betti_matching
    :members:

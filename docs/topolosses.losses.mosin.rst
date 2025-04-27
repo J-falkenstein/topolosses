@@ -1,8 +1,6 @@
-topolosses.losses.warping package
+MosinLoss
 =================================
 
-Module contents
----------------
 
 .. automodule:: topolosses.losses.mosin
    :members:
