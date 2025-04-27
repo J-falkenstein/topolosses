@@ -13,7 +13,7 @@ Welcome to the Topolosses API reference.
    :toctree: _autosummary
    :nosignatures:
 
-   losses.betti_matching
+   topolosses.losses.betti_matching
    topolosses.losses.cldice
    topolosses.losses.dice
    topolosses.losses.hutopo

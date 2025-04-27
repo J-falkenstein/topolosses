@@ -25,8 +25,8 @@ extensions = [
     "sphinx.ext.napoleon",
 ]
 autosummary_generate = True
-autodoc_add_module_names = False
-modindex_common_prefix = ["topolosses."]
+modindex_common_prefix = ["topolosses.losses"]
+toc_object_entries_show_parents = "hide"
 
 autodoc_mock_imports = [
     "topolosses.losses.topograph.src._topograph",
@@ -35,7 +35,7 @@ autodoc_mock_imports = [
     "cv2",
     "gudhi",
 ]
-toc_object_entries_show_parents = "hide"
+
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
