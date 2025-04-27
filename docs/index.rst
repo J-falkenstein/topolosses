@@ -12,7 +12,7 @@ It offers a variety of losses designed to improve the topological correctness of
 
 
 Getting Started
-==================
+---------------
 
 Install Topolosses from PyPI:
 
@@ -24,7 +24,7 @@ Install Topolosses from PyPI:
    # ... create and combine losses as needed
 
 Common Loss Structure
-=====================
+---------------------
 Since most Topologliy aware loss function combine the topolgoy componebent with a component like dice, the Loss function in this project do this all. 
 By default this base combonent is a simple dice loss but the use can adjust this to fully custom loss function. 
 
@@ -47,7 +47,7 @@ By default this base combonent is a simple dice loss but the use can adjust this
 
 
 API References
-==================
+---------------
 
 .. toctree::
    :maxdepth: 1
@@ -61,19 +61,21 @@ API References
    topolosses.losses.topograph
    topolosses.losses.warping
 
-.. automodule:: topolosses.losses.utils
-   :members: compute_default_dice_loss
-   :noindex:
+.. toctree::
+   :maxdepth: 1
+   :caption: Utils:
+
+   topolosses.losses.utils
 
 Working with Source Code
-=========================
+---------------
 If you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions manually.
 These extensions are only included in the PyPI wheels, not in the source code, so building them is required when working from source.
 
 TODO explain how to install c++ extensions 
 
 Indices and tables
-==================
+---------------
 
 * :ref:`genindex`
 * :ref:`modindex`
