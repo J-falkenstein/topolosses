@@ -38,7 +38,6 @@ clDiceLoss = CLDiceLoss(
 
 # Combine topological (BettiMatchingLoss) with base component (CLDiceLoss)
 loss = BettiMatchingLoss(
-    **input_param,
     alpha=0.5,  # Weight for the topological component
     softmax=True,
     base_loss=clDiceLoss
@@ -48,6 +47,7 @@ result = loss.forward(prediction, target)
 ```
 
 ## Common Arguments for Loss Functions
+Since most topology-aware loss functions combine the sparse topological component with a dense region loss like Dice to ensure both shape accuracy and topological correctness, this project follows the same approach. By default, it uses Dice as the base loss, but you can easily replace it with any custom loss you prefer—or even use just the topology component if that’s all you need.
 
 - **`include_background`** (bool):  
   Includes the background in the topology-aware component computation. Default: `False`.

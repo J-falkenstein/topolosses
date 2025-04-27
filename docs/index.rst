@@ -23,12 +23,19 @@ Install Topolosses from PyPI:
 .. code-block:: python
 
    from topolosses.losses import DiceLoss, BettiMatchingLoss
-   # ... create and combine losses as needed
+
+   # Combine topological (BettiMatchingLoss) with base component (DiceLoss)
+   loss = BettiMatchingLoss(
+      alpha=0.5,  # Weight for the topological component
+      softmax=True,
+      base_loss=DiceLoss(softmax=True, smooth=1e-3)
+   )
+   result = loss.forward(prediction, target)
+
 
 Common Loss Structure
 ---------------------
-Since most Topologliy aware loss function combine the topolgoy componebent with a component like dice, the Loss function in this project do this all. 
-By default this base combonent is a simple dice loss but the use can adjust this to fully custom loss function. 
+Since most topology-aware loss functions combine the sparse topological component with a dense region loss like Dice to ensure both shape accuracy and topological correctness, this project follows the same approach. By default, it uses Dice as the base loss, but you can easily replace it with any custom loss you prefer—or even use just the topology component if that’s all you need.
 
 - **alpha** (*float*):  
   Weight for combining the topology-aware component and the base loss component. Default: ``0.5``.
@@ -74,7 +81,7 @@ Working with Source Code
 If you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions manually.
 These extensions are only included in the PyPI wheels, not in the source code, so building them is required when working from source.
 
-TODO explain how to install c++ extensions 
+TODO explain how to install c++ extensions
 
 Indices and tables
 ------------------
