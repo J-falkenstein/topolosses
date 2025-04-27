@@ -26,6 +26,8 @@ extensions = [
     "sphinx.ext.todo",
 ]
 autosummary_generate = True
+autodoc_add_module_names = False
+modindex_common_prefix = ["topolosses."]
 
 autodoc_mock_imports = [
     "topolosses.losses.topograph.src._topograph",

@@ -13,13 +13,15 @@ Welcome to the Topolosses API reference.
    :toctree: _autosummary
    :nosignatures:
 
+   topolosses.losses.dice
    topolosses.losses.betti_matching
    topolosses.losses.cldice
-   topolosses.losses.dice
    topolosses.losses.hutopo
    topolosses.losses.topograph
-   topolosses.losses.utils
    topolosses.losses.warping
+   topolosses.losses.mosin
+   topolosses.losses.utils
+
 
 Indices and tables
 ==================
