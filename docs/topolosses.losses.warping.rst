@@ -1,8 +1,6 @@
-topolosses.losses.warping package
+WarpingLoss
 =================================
 
-Module contents
----------------
 
 .. automodule:: topolosses.losses.warping
    :members:

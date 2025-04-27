@@ -1,11 +1,11 @@
-topolosses.losses package
+Losses
 =========================
 
-Subpackages
------------
+Loss Functions
+----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
    topolosses.losses.betti_matching
    topolosses.losses.cldice
@@ -14,20 +14,10 @@ Subpackages
    topolosses.losses.topograph
    topolosses.losses.warping
 
-Submodules
+Utils
 ----------
-
-topolosses.losses.utils module
-------------------------------
 
 .. automodule:: topolosses.losses.utils
    :members: compute_default_dice_loss
    :noindex:
 
-Module contents
----------------
-
-.. automodule:: topolosses.losses
-   :members:
-   :show-inheritance:
-   :undoc-members:

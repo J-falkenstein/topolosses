@@ -9,9 +9,9 @@ Topolosses Documentation
 
 Welcome to the Topolosses API reference.
 
-.. autosummary::
-   :toctree: _autosummary
-   :nosignatures:
+.. toctree::
+   :maxdepth: 1
+   :caption: Contents:
 
    topolosses.losses.betti_matching
    topolosses.losses.cldice

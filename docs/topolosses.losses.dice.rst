@@ -1,8 +1,6 @@
-topolosses.losses.dice package
+DiceLoss
 ==============================
 
-Module contents
----------------
 
 .. automodule:: topolosses.losses.dice
    :members:

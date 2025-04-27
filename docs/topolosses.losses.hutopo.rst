@@ -1,4 +1,4 @@
-topolosses.losses.hutopo package
+HutopoLoss
 ================================
 
 Module contents

@@ -10,7 +10,6 @@ import os, sys
 
 sys.path.insert(0, os.path.abspath(".."))
 
-
 project = "topolosses"
 copyright = "2025, Janek Falkenstein"
 author = "Janek Falkenstein"
@@ -19,12 +18,10 @@ author = "Janek Falkenstein"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    "sphinx.ext.autosummary",
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
 ]
-autosummary_generate = True
 modindex_common_prefix = ["topolosses.losses."]
 
 autodoc_mock_imports = [
@@ -34,7 +31,6 @@ autodoc_mock_imports = [
     "cv2",
     "gudhi",
 ]
-
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
