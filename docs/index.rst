@@ -15,16 +15,17 @@ Getting Started
 ---------------
 
 The easiest way to install Topolosses (with all pre-built C++ extensions) is via PyPI:
-Install Topolosses from PyPI (<https://pypi.org/project/topolosses/>):
+Install Topolosses from `PyPI <https://pypi.org/project/topolosses/>`_:
 
 .. code-block:: bash
 
    pip install topolosses
 
-Alternative you can clone source-code from github (<https://github.com/J-falkenstein/topolosses>). 
+Alternative you can clone source-code from `github <https://github.com/J-falkenstein/topolosses>`_. 
 **Note**: this requires manual building of the C++ extensions (see :ref:`working-with-source-code`):
 
 Once installed, import and use any of the topology-aware losses just like a standard PyTorch loss:
+
 .. code-block:: python
 
    from topolosses.losses import DiceLoss, BettiMatchingLoss
@@ -95,8 +96,8 @@ TODO explain how to install c++ extensions
 
 Links
 -----
-- Pypi package: <https://pypi.org/project/topolosses/>
-- Code: <https://github.com/J-falkenstein/topolosses>
+- Pypi package: https://pypi.org/project/topolosses/
+- Code: https://github.com/J-falkenstein/topolosses
 
 
 Indices and tables
