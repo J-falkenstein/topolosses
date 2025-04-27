@@ -14,6 +14,11 @@ project = "topolosses"
 copyright = "2025, Janek Falkenstein"
 author = "Janek Falkenstein"
 
+import sphinx_rtd_theme
+
+html_theme = "sphinx_rtd_theme"
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
@@ -22,6 +27,9 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
 ]
+napoleon_use_admonition_for_notes = True
+napoleon_use_admonition_for_examples = True
+napoleon_use_admonition_for_references = True
 modindex_common_prefix = ["topolosses.losses."]
 autoclass_content = "both"
 

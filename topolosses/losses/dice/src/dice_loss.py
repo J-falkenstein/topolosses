@@ -18,8 +18,7 @@ class DiceLoss(_Loss):
         include_background=True,
         weights: Optional[Tensor] = None,
     ) -> None:
-        """Initializes the DiceLoss object.
-
+        """
         Args:
             smooth (float): Smoothing factor to avoid division by zero added to numerator and denominator. Defaults to 1e-5.
             sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the loss.
