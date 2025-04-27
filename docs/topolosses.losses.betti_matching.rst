@@ -1,4 +1,4 @@
-Betti Matching Loss
+BettiMatchingLoss
 =========================================
 
 

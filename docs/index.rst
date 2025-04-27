@@ -17,9 +17,11 @@ Getting Started
 Install Topolosses from PyPI:
 
 .. code-block:: bash
+
    pip install topolosses
 
 .. code-block:: python
+
    from topolosses.losses import DiceLoss, BettiMatchingLoss
    # ... create and combine losses as needed
 
@@ -68,14 +70,14 @@ API References
    topolosses.losses.utils
 
 Working with Source Code
----------------
+-------------------------
 If you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions manually.
 These extensions are only included in the PyPI wheels, not in the source code, so building them is required when working from source.
 
 TODO explain how to install c++ extensions 
 
 Indices and tables
----------------
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
