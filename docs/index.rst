@@ -14,12 +14,17 @@ It contains losses designed to improve the topological correctness of model pred
 Getting Started
 ---------------
 
-Install Topolosses from PyPI:
+The easiest way to install Topolosses (with all pre-built C++ extensions) is via PyPI:
+Install Topolosses from PyPI (<https://pypi.org/project/topolosses/>):
 
 .. code-block:: bash
 
    pip install topolosses
 
+Alternative you can clone source-code from github (<https://github.com/J-falkenstein/topolosses>). 
+**Note**: this requires manual building of the C++ extensions (see :ref:`working-with-source-code`):
+
+Once installed, import and use any of the topology-aware losses just like a standard PyTorch loss:
 .. code-block:: python
 
    from topolosses.losses import DiceLoss, BettiMatchingLoss
@@ -76,12 +81,23 @@ API References
 
    topolosses.losses.utils
 
+.. _working-with-source-code:
+
 Working with Source Code
 -------------------------
 If you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions manually.
 These extensions are only included in the PyPI wheels, not in the source code, so building them is required when working from source.
 
+- build c++ extension explictly and include in your project
+- build whole project yourself locally (python -m build) and then pip install {path}.whl
+
 TODO explain how to install c++ extensions
+
+Links
+-----
+- Pypi package: <https://pypi.org/project/topolosses/>
+- Code: <https://github.com/J-falkenstein/topolosses>
+
 
 Indices and tables
 ------------------

@@ -89,7 +89,7 @@ class CLDiceLoss(_Loss):
             target (torch.Tensor): Ground truth segmentation map of shape BC[spatial dimensions]
 
         Returns:
-            tuple: A tuple containing the total DiceCLDice loss and a dictionary of individual loss components. # TODO define the return type
+            Tensor: The calculated CLDice loss
 
         Raises:
             ValueError: If the shape of the ground truth is different from the input shape.
