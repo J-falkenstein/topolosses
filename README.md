@@ -11,7 +11,7 @@ Install the package from Test PyPI.
 
 
 ```bash
-pip install -i https://test.pypi.org/simple/ topolosses
+pip install topolosses
 ```
 
 ## Usage
@@ -72,19 +72,29 @@ result = loss.forward(prediction, target)
 > **Note**: Each loss function also has specific arguments. These are documented within the code using docstrings, and can be easily accessed using Python's `help()` function or by exploring the source code.
 
 
+## Working with Source Code
+If you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions manually.
+These extensions are only included in the PyPI wheels, not in the source code, so building them is required when working from source.
+
+TODO explain how to install c++ extensions 
+
+
 ## Folder Structure
 
 
 ```
 topolosses
-├─ .DS_Store
 ├─ CMakeLists.txt
 ├─ LICENSE
 ├─ README.md
 ├─ pyproject.toml
+├─ docs
+   ├─ index.rst
+   ├─ ...
 └─ topolosses
    ├─ README.md
    ├─ __init__.py
+   ├─ metrics
    └─ losses
       ├─ __init__.py
       ├─ betti_matching
