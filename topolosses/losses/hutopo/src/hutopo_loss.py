@@ -54,6 +54,7 @@ class HutopoLoss(_Loss):
                   - `sublevel`:    sublevel-set on raw output.
                   - `superlevel`:  sublevel-set on inverted output (1–p).
                   - `bothlevels`:  both SUBLEVEL and SUPERLEVEL via concatenation.
+
                 Defaults to SUPERLEVEL.
             num_processes (int):
                 Number of parallel processes for persistent homology computations. Higher values may improve throughput. Defaults to 1.
