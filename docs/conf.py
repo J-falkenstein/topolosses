@@ -23,7 +23,6 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    "sphinx.ext.todo",
 ]
 autosummary_generate = True
 autodoc_add_module_names = False
@@ -36,19 +35,9 @@ autodoc_mock_imports = [
     "cv2",
     "gudhi",
 ]
+toc_object_entries_show_parents = "hide"
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 language = "en"
-
-# -- Options for HTML output -------------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
-
-html_theme = "alabaster"
-html_static_path = ["_static"]
-
-# -- Options for todo extension ----------------------------------------------
-# https://www.sphinx-doc.org/en/master/usage/extensions/todo.html#configuration
-
-todo_include_todos = True
