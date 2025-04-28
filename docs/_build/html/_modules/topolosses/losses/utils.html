@@ -1,0 +1,214 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>topolosses.losses.utils &mdash; topolosses  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            topolosses
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Losses:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../topolosses.losses.betti_matching.html">BettiMatchingLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../topolosses.losses.cldice.html">CLDiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../topolosses.losses.dice.html">DiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../topolosses.losses.hutopo.html">HutopoLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../topolosses.losses.mosin.html">MosinLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../topolosses.losses.topograph.html">TopographLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../topolosses.losses.warping.html">WarpingLoss</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">utils:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../topolosses.losses.utils.html">Utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">topolosses</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">topolosses.losses.utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for topolosses.losses.utils</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch</span><span class="w"> </span><span class="kn">import</span> <span class="n">Tensor</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+
+<span class="c1"># to only expose this function in the spynx documentation</span>
+<span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;compute_default_dice_loss&quot;</span><span class="p">]</span>
+
+
+<div class="viewcode-block" id="compute_default_dice_loss">
+<a class="viewcode-back" href="../../../topolosses.losses.utils.html#topolosses.losses.utils.compute_default_dice_loss">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_default_dice_loss</span><span class="p">(</span>
+    <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">reduce_axis</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">smooth</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-5</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Function to compute the (weighted) Dice loss with default settings for the default base loss</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        input (torch.Tensor): The predicted segmentation map with shape (N, C, ...),</span>
+<span class="sd">                            where N is batch size, C is the number of classes.</span>
+<span class="sd">        target (torch.Tensor): The ground truth segmentation map with the same shape as `input`.</span>
+<span class="sd">        reduce_axis (List[int]): The axes along which to reduce the loss computation.</span>
+<span class="sd">                            To decide whether to sum the intersection and union areas over the batch dimension before the dividing.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.Tensor: The Dice loss as a scalar</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">reduce_axis</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">reduce_axis</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+
+    <span class="n">intersection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">target</span> <span class="o">*</span> <span class="nb">input</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">reduce_axis</span><span class="p">)</span>
+    <span class="n">ground_o</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">reduce_axis</span><span class="p">)</span>
+    <span class="n">pred_o</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">reduce_axis</span><span class="p">)</span>
+    <span class="n">denominator</span> <span class="o">=</span> <span class="n">ground_o</span> <span class="o">+</span> <span class="n">pred_o</span>
+    <span class="n">dice</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">intersection</span> <span class="o">+</span> <span class="n">smooth</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">denominator</span> <span class="o">+</span> <span class="n">smooth</span><span class="p">)</span>
+
+    <span class="n">dice</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">dice</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dice</span></div>
+
+
+
+<span class="c1"># TODO for all these enums and function check if they are used accross losses or only in topograph, move accordingly</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">AggregationType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">MEAN</span> <span class="o">=</span> <span class="s2">&quot;mean&quot;</span>
+    <span class="n">SUM</span> <span class="o">=</span> <span class="s2">&quot;sum&quot;</span>
+    <span class="n">MAX</span> <span class="o">=</span> <span class="s2">&quot;max&quot;</span>
+    <span class="n">MIN</span> <span class="o">=</span> <span class="s2">&quot;min&quot;</span>
+    <span class="n">CE</span> <span class="o">=</span> <span class="s2">&quot;ce&quot;</span>
+    <span class="n">RMS</span> <span class="o">=</span> <span class="s2">&quot;rms&quot;</span>
+    <span class="n">LEG</span> <span class="o">=</span> <span class="s2">&quot;leg&quot;</span>
+
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ThresholdDistribution</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">UNIFORM</span> <span class="o">=</span> <span class="s2">&quot;uniform&quot;</span>
+    <span class="n">GAUSSIAN</span> <span class="o">=</span> <span class="s2">&quot;gaussian&quot;</span>
+    <span class="n">NONE</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">new_compute_diffs</span><span class="p">(</span><span class="n">paired_img_batch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="n">h_diff</span> <span class="o">=</span> <span class="n">paired_img_batch</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">paired_img_batch</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">v_diff</span> <span class="o">=</span> <span class="n">paired_img_batch</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">paired_img_batch</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:]</span>
+    <span class="n">h_diff</span> <span class="o">=</span> <span class="n">h_diff</span> <span class="o">!=</span> <span class="mi">0</span>
+    <span class="n">v_diff</span> <span class="o">=</span> <span class="n">v_diff</span> <span class="o">!=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">h_diff</span><span class="p">,</span> <span class="n">v_diff</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">new_compute_diag_diffs</span><span class="p">(</span><span class="n">paired_img_batch</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">th</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">11</span><span class="p">):</span>
+    <span class="n">weight</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span> <span class="n">device</span><span class="o">=</span><span class="n">paired_img_batch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">diag_connections</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">paired_img_batch</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">weight</span><span class="o">.</span><span class="n">float</span><span class="p">())</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">diagr</span> <span class="o">=</span> <span class="n">diag_connections</span> <span class="o">&gt;</span> <span class="n">th</span>
+    <span class="n">diagl</span> <span class="o">=</span> <span class="n">diag_connections</span> <span class="o">&lt;</span> <span class="o">-</span><span class="n">th</span>
+    <span class="n">special_case_r</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">diag_connections</span> <span class="o">==</span> <span class="mi">7</span><span class="p">,</span> <span class="n">diag_connections</span> <span class="o">==</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">special_case_l</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">diag_connections</span> <span class="o">==</span> <span class="o">-</span><span class="mi">7</span><span class="p">,</span> <span class="n">diag_connections</span> <span class="o">==</span> <span class="o">-</span><span class="mi">4</span><span class="p">)</span>
+    <span class="c1"># special_case_r = torch.zeros_like(diagr)</span>
+    <span class="c1"># special_case_l = torch.zeros_like(diagl)</span>
+
+    <span class="k">return</span> <span class="n">diagr</span><span class="p">,</span> <span class="n">diagl</span><span class="p">,</span> <span class="n">special_case_r</span><span class="p">,</span> <span class="n">special_case_l</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">fill_adj_matr</span><span class="p">(</span><span class="n">adj_matrix</span><span class="p">,</span> <span class="n">h_edges</span><span class="p">,</span> <span class="n">v_edges</span><span class="p">):</span>
+    <span class="n">adj_matrix</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">h_edges</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">adj_matrix</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">h_edges</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])]</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># Add the transposed edges</span>
+    <span class="n">adj_matrix</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">v_edges</span><span class="p">)]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">adj_matrix</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">v_edges</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])]</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># Add the transposed edges</span>
+
+    <span class="c1"># remove self loops</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">fill_diagonal</span><span class="p">(</span><span class="n">adj_matrix</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">adj_matrix</span>
+
+
+<span class="c1"># TODO Check if only used in betti matching if so move accordingly</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">FiltrationType</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">SUPERLEVEL</span> <span class="o">=</span> <span class="s2">&quot;superlevel&quot;</span>
+    <span class="n">SUBLEVEL</span> <span class="o">=</span> <span class="s2">&quot;sublevel&quot;</span>
+    <span class="n">BOTHLEVELS</span> <span class="o">=</span> <span class="s2">&quot;bothlevels&quot;</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Janek Falkenstein.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

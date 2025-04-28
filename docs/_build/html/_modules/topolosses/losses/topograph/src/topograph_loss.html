@@ -1,0 +1,1041 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>topolosses.losses.topograph.src.topograph_loss &mdash; topolosses  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            topolosses
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Losses:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.betti_matching.html">BettiMatchingLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.cldice.html">CLDiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.dice.html">DiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.hutopo.html">HutopoLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.mosin.html">MosinLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.topograph.html">TopographLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.warping.html">WarpingLoss</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">utils:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.utils.html">Utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">topolosses</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">topolosses.losses.topograph.src.topograph_loss</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for topolosses.losses.topograph.src.topograph_loss</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.modules.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">_Loss</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">networkx</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nx</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.modules.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">_Loss</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.multiprocessing</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
+
+<span class="c1"># C++ implementation Topograph, can be installed locally as own package with the setup file</span>
+<span class="c1"># during the build process for the distribution file a similar package is build using the cmake file.</span>
+<span class="c1"># TODO make a local build of topograph that can be imported the same way during dev as during build process</span>
+<span class="c1"># import Topograph as _topograph</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">.</span><span class="w"> </span><span class="kn">import</span> <span class="n">_topograph</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">...utils</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">AggregationType</span><span class="p">,</span>
+    <span class="n">ThresholdDistribution</span><span class="p">,</span>
+    <span class="n">fill_adj_matr</span><span class="p">,</span>
+    <span class="n">new_compute_diag_diffs</span><span class="p">,</span>
+    <span class="n">new_compute_diffs</span><span class="p">,</span>
+    <span class="n">compute_default_dice_loss</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.ndimage</span><span class="w"> </span><span class="kn">import</span> <span class="n">label</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">scipy.cluster.hierarchy</span><span class="w"> </span><span class="kn">import</span> <span class="n">DisjointSet</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">reverse_pairing</span><span class="p">(</span><span class="n">pairing</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="k">match</span> <span class="n">pairing</span><span class="p">:</span>
+        <span class="k">case</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">case</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span>
+        <span class="k">case</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span>
+        <span class="k">case</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
+        <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+            <span class="k">return</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">label_regions</span><span class="p">(</span><span class="n">pred</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">gt</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Labels the regions in the predicted image based on the intersection of the predicted and ground truth images by assign a unique class to each connected component.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        pred (ndarray, [H, W]): The predicted and binarized image in argmax encoding of shape [H, W].</span>
+<span class="sd">        gt (ndarray, [H, W]): The ground truth image in argmax encoding of shape [H, W].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        tuple: A tuple containing the labeled regions, masks, prediction labels, and ground truth labels.</span>
+<span class="sd">            - all_labels (ndarray, [H, W]): The labeled regions starting at 1 of shape [H, W].</span>
+<span class="sd">            - pred_labels (ndarray, [N]): The predicted classes for each region.</span>
+<span class="sd">            - gt_labels (ndarray, [N]): The ground truth classes for each region.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># create one hot encoding for each intersection class</span>
+    <span class="n">paired_img</span> <span class="o">=</span> <span class="n">pred</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">gt</span>
+    <span class="n">masked_imgs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">4</span><span class="p">)[</span><span class="n">paired_img</span><span class="p">]</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># use map to iterate through all possible combinations of classes and create connected component labeling with masks</span>
+    <span class="n">cc_result</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">masked_imgs</span><span class="p">)</span>
+
+    <span class="n">all_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">pred</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">label_counter</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># counter for the number of classes that have already been set</span>
+
+    <span class="n">gt_labels</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">pred_labels</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># iterate through all possible combinations of classes and aggregate all labels</span>
+    <span class="k">for</span> <span class="n">inters_class</span><span class="p">,</span> <span class="p">(</span><span class="n">labeled_regions</span><span class="p">,</span> <span class="n">num_nodes</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cc_result</span><span class="p">):</span>
+        <span class="c1"># add the labeled mask to the final image</span>
+        <span class="n">all_labels</span> <span class="o">+=</span> <span class="n">labeled_regions</span> <span class="o">+</span> <span class="p">(</span><span class="n">masked_imgs</span><span class="p">[</span><span class="n">inters_class</span><span class="p">]</span> <span class="o">*</span> <span class="n">label_counter</span><span class="p">)</span>
+        <span class="n">label_counter</span> <span class="o">+=</span> <span class="n">num_nodes</span>
+
+        <span class="c1"># get pred and gt class via reverse cantor pairing</span>
+        <span class="n">pred_class</span><span class="p">,</span> <span class="n">gt_class</span> <span class="o">=</span> <span class="n">reverse_pairing</span><span class="p">(</span><span class="n">inters_class</span><span class="p">)</span>
+
+        <span class="c1"># append pred and gt classes</span>
+        <span class="n">pred_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_nodes</span><span class="p">))</span> <span class="o">+</span> <span class="n">pred_class</span><span class="p">)</span>
+        <span class="n">gt_labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">num_nodes</span><span class="p">))</span> <span class="o">+</span> <span class="n">gt_class</span><span class="p">)</span>
+
+    <span class="c1"># convert label lists to numpy arrays</span>
+    <span class="n">pred_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">pred_labels</span><span class="p">)</span>
+    <span class="n">gt_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">gt_labels</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">all_labels</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">all_labels</span> <span class="o">-=</span> <span class="mi">1</span>
+
+    <span class="k">return</span> <span class="n">all_labels</span><span class="p">,</span> <span class="n">pred_labels</span><span class="p">,</span> <span class="n">gt_labels</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">rag</span><span class="p">(</span><span class="n">labelled_regions</span><span class="p">,</span> <span class="n">h_diff</span><span class="p">,</span> <span class="n">v_diff</span><span class="p">,</span> <span class="n">diagr</span><span class="p">,</span> <span class="n">diagl</span><span class="p">,</span> <span class="n">special_diagr</span><span class="p">,</span> <span class="n">special_diagl</span><span class="p">):</span>
+    <span class="n">max_label</span> <span class="o">=</span> <span class="n">labelled_regions</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+    <span class="c1"># if all voxel have the same class, there are no edges</span>
+    <span class="k">if</span> <span class="n">max_label</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># get the classes of each edge</span>
+        <span class="n">h_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">labelled_regions</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:][</span><span class="n">h_diff</span><span class="p">],</span> <span class="n">labelled_regions</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:][</span><span class="n">h_diff</span><span class="p">]])</span>
+        <span class="n">v_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">labelled_regions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:][</span><span class="n">v_diff</span><span class="p">],</span> <span class="n">labelled_regions</span><span class="p">[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">v_diff</span><span class="p">]])</span>
+
+        <span class="c1"># create adjacency matrix</span>
+        <span class="n">adj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">max_label</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_label</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">special_adj</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">max_label</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">max_label</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">bool</span><span class="p">)</span>
+        <span class="n">adj</span> <span class="o">=</span> <span class="n">fill_adj_matr</span><span class="p">(</span><span class="n">adj</span><span class="p">,</span> <span class="n">h_edges</span><span class="p">,</span> <span class="n">v_edges</span><span class="p">)</span>
+
+        <span class="n">dr_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">labelled_regions</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">diagr</span><span class="p">],</span> <span class="n">labelled_regions</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:][</span><span class="n">diagr</span><span class="p">]])</span>
+        <span class="n">dl_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">labelled_regions</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:][</span><span class="n">diagl</span><span class="p">],</span> <span class="n">labelled_regions</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">diagl</span><span class="p">]])</span>
+        <span class="n">special_dr_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">labelled_regions</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">special_diagr</span><span class="p">],</span> <span class="n">labelled_regions</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="mi">1</span><span class="p">:][</span><span class="n">special_diagr</span><span class="p">]]</span>
+        <span class="p">)</span>
+        <span class="n">special_dl_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">labelled_regions</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">:][</span><span class="n">special_diagl</span><span class="p">],</span> <span class="n">labelled_regions</span><span class="p">[</span><span class="mi">1</span><span class="p">:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">special_diagl</span><span class="p">]]</span>
+        <span class="p">)</span>
+        <span class="n">adj</span> <span class="o">=</span> <span class="n">fill_adj_matr</span><span class="p">(</span><span class="n">adj</span><span class="p">,</span> <span class="n">dr_edges</span><span class="p">,</span> <span class="n">dl_edges</span><span class="p">)</span>
+        <span class="n">special_adj</span> <span class="o">=</span> <span class="n">fill_adj_matr</span><span class="p">(</span><span class="n">special_adj</span><span class="p">,</span> <span class="n">special_dr_edges</span><span class="p">,</span> <span class="n">special_dl_edges</span><span class="p">)</span>
+
+        <span class="c1"># convert to edge index list</span>
+        <span class="n">edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">adj</span><span class="p">))</span>
+        <span class="n">special_edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">special_adj</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">edges</span><span class="p">,</span> <span class="n">special_edges</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">contract_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">):</span>
+    <span class="c1"># identify clusters of nodes that all have the same predicted and gt class</span>
+    <span class="n">same_nodes</span> <span class="o">=</span> <span class="n">DisjointSet</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+        <span class="c1"># skip correct background nodes because they never have only a diagonal edge</span>
+        <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># get the node&#39;s cluster</span>
+        <span class="n">cur_node_cluster</span> <span class="o">=</span> <span class="n">same_nodes</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+
+        <span class="c1"># iterate through all neighbors of the current node</span>
+        <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">graph</span><span class="p">[</span><span class="n">node</span><span class="p">]:</span>
+            <span class="c1"># visit each edge only once or if it is a special edge, skip it</span>
+            <span class="k">if</span> <span class="n">neighbor</span> <span class="o">&lt;</span> <span class="n">node</span> <span class="ow">or</span> <span class="n">graph</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="n">neighbor</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;special&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="k">continue</span>
+            <span class="c1"># check if the neighbor has the same predicted and gt class as the current node</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">neighbor</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span>
+                <span class="ow">and</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">neighbor</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="n">nbr_cluster</span> <span class="o">=</span> <span class="n">same_nodes</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">nbr_cluster</span> <span class="o">!=</span> <span class="n">cur_node_cluster</span><span class="p">:</span>
+                    <span class="n">same_nodes</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">cur_node_cluster</span><span class="p">,</span> <span class="n">nbr_cluster</span><span class="p">)</span>
+
+    <span class="c1"># contract nodes in the graph based on the clusters</span>
+    <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">same_nodes</span><span class="o">.</span><span class="n">subsets</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># get the first node in the cluster</span>
+        <span class="n">first_node</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+
+        <span class="c1"># Save the contracted nodes in the first node of each cluster</span>
+        <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">first_node</span><span class="p">][</span><span class="s2">&quot;contracted_nodes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster</span>
+
+        <span class="c1"># contract all other nodes in the cluster to the first node</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">cluster</span><span class="p">:</span>
+            <span class="n">nx</span><span class="o">.</span><span class="n">contracted_nodes</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">first_node</span><span class="p">,</span> <span class="n">node</span><span class="p">,</span> <span class="n">self_loops</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">copy</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">graph</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">identify_clusters</span><span class="p">(</span><span class="n">graph</span><span class="p">):</span>
+    <span class="n">pred_cluster</span> <span class="o">=</span> <span class="n">DisjointSet</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+    <span class="n">gt_cluster</span> <span class="o">=</span> <span class="n">DisjointSet</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+        <span class="c1"># skip correct background nodes because they&#39;re never part of a cluster</span>
+        <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># get the node&#39;s clusters</span>
+        <span class="n">cur_pred_cluster</span> <span class="o">=</span> <span class="n">pred_cluster</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+        <span class="n">cur_gt_cluster</span> <span class="o">=</span> <span class="n">gt_cluster</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+
+        <span class="c1"># iterate through all neighbors of the current node</span>
+        <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">graph</span><span class="p">[</span><span class="n">node</span><span class="p">]:</span>
+            <span class="c1"># visit each edge only once</span>
+            <span class="k">if</span> <span class="n">neighbor</span> <span class="o">&lt;</span> <span class="n">node</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="c1"># # if it is a special edge, skip it</span>
+            <span class="c1"># if graph[node][neighbor].get(&#39;special&#39;, False):</span>
+            <span class="c1">#     continue</span>
+            <span class="c1"># if they are both predicted foreground, merge pred cluster</span>
+            <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">neighbor</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">pred_nbr_cluster</span> <span class="o">=</span> <span class="n">pred_cluster</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">pred_nbr_cluster</span> <span class="o">!=</span> <span class="n">cur_pred_cluster</span><span class="p">:</span>
+                    <span class="n">pred_cluster</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">cur_pred_cluster</span><span class="p">,</span> <span class="n">pred_nbr_cluster</span><span class="p">)</span>
+
+            <span class="c1"># if they have the same gt class, merge gt cluster</span>
+            <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">neighbor</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">gt_nbr_cluster</span> <span class="o">=</span> <span class="n">gt_cluster</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">gt_nbr_cluster</span> <span class="o">!=</span> <span class="n">cur_gt_cluster</span><span class="p">:</span>
+                    <span class="n">gt_cluster</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">cur_gt_cluster</span><span class="p">,</span> <span class="n">gt_nbr_cluster</span><span class="p">)</span>
+
+    <span class="c1"># add pred cluster to each node</span>
+    <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">pred_cluster</span><span class="o">.</span><span class="n">subsets</span><span class="p">():</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">pred_cluster</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+        <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;pred_cluster&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">root</span>
+
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">cluster</span><span class="p">:</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;pred_cluster&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">root</span>
+
+    <span class="c1"># add gt cluster to each node</span>
+    <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">gt_cluster</span><span class="o">.</span><span class="n">subsets</span><span class="p">():</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="n">root</span> <span class="o">=</span> <span class="n">gt_cluster</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+        <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;gt_cluster&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">root</span>
+
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">cluster</span><span class="p">:</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;gt_cluster&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">root</span>
+
+    <span class="k">return</span> <span class="n">graph</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_graph</span><span class="p">(</span><span class="n">argmax_pred</span><span class="p">,</span> <span class="n">argmax_gt</span><span class="p">,</span> <span class="n">h_diff</span><span class="p">,</span> <span class="n">v_diff</span><span class="p">,</span> <span class="n">diagr</span><span class="p">,</span> <span class="n">diagl</span><span class="p">,</span> <span class="n">special_diagr</span><span class="p">,</span> <span class="n">special_diagl</span><span class="p">):</span>
+    <span class="n">labelled_regions</span><span class="p">,</span> <span class="n">predicted_classes</span><span class="p">,</span> <span class="n">gt_classes</span> <span class="o">=</span> <span class="n">label_regions</span><span class="p">(</span><span class="n">argmax_pred</span><span class="p">,</span> <span class="n">argmax_gt</span><span class="p">)</span>
+
+    <span class="c1"># create a graph from the labelled regions</span>
+    <span class="k">if</span> <span class="n">labelled_regions</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># if there is only one class, create a graph with a single node</span>
+        <span class="n">graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+        <span class="n">graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">edge_index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[],</span> <span class="p">[]])</span>
+        <span class="n">special_edge_index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[],</span> <span class="p">[]])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">edge_index</span><span class="p">,</span> <span class="n">special_edge_index</span> <span class="o">=</span> <span class="n">rag</span><span class="p">(</span>
+            <span class="n">labelled_regions</span><span class="p">,</span> <span class="n">h_diff</span><span class="p">,</span> <span class="n">v_diff</span><span class="p">,</span> <span class="n">diagr</span><span class="p">,</span> <span class="n">diagl</span><span class="p">,</span> <span class="n">special_diagr</span><span class="p">,</span> <span class="n">special_diagl</span>
+        <span class="p">)</span>
+
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">graph</span><span class="o">.</span><span class="n">add_edges_from</span><span class="p">(</span><span class="n">edge_index</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">graph</span><span class="o">.</span><span class="n">add_edges_from</span><span class="p">(</span><span class="n">special_edge_index</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">special</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="c1"># add node attributes</span>
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+        <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">predicted_classes</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+        <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">gt_classes</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+
+    <span class="n">graph</span><span class="o">.</span><span class="n">graph</span><span class="p">[</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">predicted_classes</span>
+
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">contract_graph</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">identify_clusters</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">graph</span><span class="p">,</span> <span class="n">labelled_regions</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_critical_nodes</span><span class="p">(</span><span class="n">graph</span><span class="p">):</span>
+    <span class="n">critical_nodes</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">cluster_lengths</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">error_type</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+        <span class="c1"># skip correctly predicted nodes</span>
+        <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]:</span>
+            <span class="k">continue</span>
+
+        <span class="n">all_nbrs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">graph</span><span class="p">[</span><span class="n">node</span><span class="p">])</span>
+
+        <span class="n">fg_nbr_clusters</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">correct_bg_nbrs_count</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">counter_class_str</span> <span class="o">=</span> <span class="s2">&quot;gt_cluster&quot;</span> <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;pred_cluster&quot;</span>
+
+        <span class="k">for</span> <span class="n">nbr</span> <span class="ow">in</span> <span class="n">all_nbrs</span><span class="p">:</span>
+            <span class="c1"># if it is a special edge, skip it</span>
+            <span class="k">if</span> <span class="n">graph</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="n">nbr</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;special&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">nbr_gt_class</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">nbr</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]</span>
+
+            <span class="c1"># if neighbor is correctly predicted, add the</span>
+            <span class="k">if</span> <span class="n">nbr_gt_class</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">nbr</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># correct background case</span>
+                <span class="n">correct_bg_nbrs_count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="c1"># If we have more than one correct background neighbor, we can stop here</span>
+                <span class="k">if</span> <span class="n">correct_bg_nbrs_count</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># all other nbrs are either incorrect foreground in the counter class or correct foreground</span>
+                <span class="n">fg_nbr_clusters</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">nbr</span><span class="p">][</span><span class="n">counter_class_str</span><span class="p">])</span>
+
+        <span class="c1"># if cur_node does not have exactly one correct background neighbor or not exactly one foreground nbr cluster, add it to critical nodes</span>
+        <span class="k">if</span> <span class="n">correct_bg_nbrs_count</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">fg_nbr_clusters</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">node_error</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">correct_bg_nbrs_count</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">fg_nbr_clusters</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="mi">2</span>
+            <span class="k">if</span> <span class="n">node_error</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># check what type of error it is</span>
+                <span class="k">if</span> <span class="n">correct_bg_nbrs_count</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">node_error</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">node_error</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">error_type</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node_error</span><span class="p">)</span>
+            <span class="n">critical_nodes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="s2">&quot;contracted_nodes&quot;</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">]:</span>
+                <span class="n">critical_nodes</span> <span class="o">+=</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;contracted_nodes&quot;</span><span class="p">]</span>
+                <span class="n">cluster_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;contracted_nodes&quot;</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">cluster_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+    <span class="k">return</span> <span class="n">critical_nodes</span><span class="p">,</span> <span class="n">cluster_lengths</span><span class="p">,</span> <span class="n">error_type</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">get_critical_nbrs</span><span class="p">(</span><span class="n">graph</span><span class="p">):</span>
+    <span class="n">error_count</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+        <span class="c1"># skip correctly predicted nodes</span>
+        <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]:</span>
+            <span class="k">continue</span>
+
+        <span class="n">all_nbrs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">graph</span><span class="p">[</span><span class="n">node</span><span class="p">])</span>
+
+        <span class="n">fg_nbr_clusters</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">bg_nbrs</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+        <span class="n">counter_class_str</span> <span class="o">=</span> <span class="s2">&quot;gt_cluster&quot;</span> <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;pred_cluster&quot;</span>
+        <span class="n">class_str</span> <span class="o">=</span> <span class="s2">&quot;gt_visisted&quot;</span> <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;pred_visited&quot;</span>
+
+        <span class="k">for</span> <span class="n">nbr</span> <span class="ow">in</span> <span class="n">all_nbrs</span><span class="p">:</span>
+            <span class="c1"># if it is a special edge, skip it</span>
+            <span class="k">if</span> <span class="n">graph</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="n">nbr</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;special&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="k">continue</span>
+
+            <span class="n">nbr_gt_class</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">nbr</span><span class="p">][</span><span class="s2">&quot;gt_classes&quot;</span><span class="p">]</span>
+
+            <span class="c1"># if neighbor is correctly predicted, add the</span>
+            <span class="k">if</span> <span class="n">nbr_gt_class</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">nbr</span><span class="p">][</span><span class="s2">&quot;predicted_classes&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># correct background case</span>
+                <span class="n">bg_nbrs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">nbr</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>  <span class="c1"># all other nbrs are either incorrect foreground in the counter class or correct foreground</span>
+                <span class="n">fg_nbr_clusters</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">nbr</span><span class="p">][</span><span class="n">counter_class_str</span><span class="p">])</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bg_nbrs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">fg_nbr_clusters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># if a correct nbr is missing, add one to the error count</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">bg_nbrs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">error_count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">bg_nbrs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># if there are too many nbrs, count each as error that has not been counted yet</span>
+            <span class="n">seen_nodes</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">error_node</span> <span class="ow">in</span> <span class="n">bg_nbrs</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">class_str</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">error_node</span><span class="p">]:</span>
+                    <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">error_node</span><span class="p">][</span><span class="n">class_str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">seen_nodes</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">error_count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">bg_nbrs</span><span class="p">)</span> <span class="o">-</span> <span class="nb">max</span><span class="p">(</span><span class="n">seen_nodes</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">fg_nbr_clusters</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">error_count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">fg_nbr_clusters</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">seen_nodes</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">error_node</span> <span class="ow">in</span> <span class="n">fg_nbr_clusters</span><span class="p">:</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">class_str</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">error_node</span><span class="p">]:</span>
+                    <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">error_node</span><span class="p">][</span><span class="n">class_str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">seen_nodes</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="n">error_count</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fg_nbr_clusters</span><span class="p">)</span> <span class="o">-</span> <span class="nb">max</span><span class="p">(</span><span class="n">seen_nodes</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">error_count</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_relabel_masks</span><span class="p">(</span><span class="n">critical_node_list</span><span class="p">,</span> <span class="n">cluster_lengths</span><span class="p">,</span> <span class="n">all_labels</span><span class="p">):</span>
+    <span class="n">region_error_infos</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">remaining_nodes_in_cluster</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">cluster_counter</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+    <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">critical_node_list</span><span class="p">):</span>
+        <span class="n">cluster_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">node_set</span> <span class="o">=</span> <span class="p">[</span><span class="n">critical_node_list</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+        <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">remaining_nodes_in_cluster</span> <span class="o">=</span> <span class="n">cluster_lengths</span><span class="p">[</span><span class="n">cluster_counter</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+
+        <span class="k">while</span> <span class="n">remaining_nodes_in_cluster</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">node_set</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">critical_node_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">remaining_nodes_in_cluster</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="c1"># get indices from all positions where all_labels is equal to any node in the node_set</span>
+        <span class="n">relabel_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">all_labels</span><span class="p">,</span> <span class="n">node_set</span><span class="p">)</span>
+
+        <span class="n">index_relabel_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">relabel_mask</span><span class="p">)</span>
+
+        <span class="n">region_error_infos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index_relabel_mask</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">region_error_infos</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">create_relabel_masks_c</span><span class="p">(</span><span class="n">critical_node_list</span><span class="p">,</span> <span class="n">cluster_lengths</span><span class="p">,</span> <span class="n">all_labels</span><span class="p">):</span>
+
+    <span class="c1"># convert to fortran storage order</span>
+    <span class="n">all_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asfortranarray</span><span class="p">(</span><span class="n">all_labels</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># convert list to 1-dim numpy array in fortran storage</span>
+    <span class="n">critical_nodes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asfortranarray</span><span class="p">(</span><span class="n">critical_node_list</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">cluster_lengths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asfortranarray</span><span class="p">(</span><span class="n">cluster_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">relabel_indices</span> <span class="o">=</span> <span class="n">_topograph</span><span class="o">.</span><span class="n">get_relabel_indices</span><span class="p">(</span><span class="n">all_labels</span><span class="p">,</span> <span class="n">critical_nodes</span><span class="p">,</span> <span class="n">cluster_lengths</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">relabel_indices</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_single_sample_class_loss</span><span class="p">(</span>
+    <span class="n">argmax_pred</span><span class="p">,</span> <span class="n">argmax_gt</span><span class="p">,</span> <span class="n">h_diff</span><span class="p">,</span> <span class="n">v_diff</span><span class="p">,</span> <span class="n">diagr</span><span class="p">,</span> <span class="n">diagl</span><span class="p">,</span> <span class="n">special_diagr</span><span class="p">,</span> <span class="n">special_diagl</span><span class="p">,</span> <span class="n">sample_no</span><span class="p">,</span> <span class="n">use_c</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">):</span>
+    <span class="c1"># create graph</span>
+    <span class="n">graph</span><span class="p">,</span> <span class="n">labelled_regions</span> <span class="o">=</span> <span class="n">create_graph</span><span class="p">(</span>
+        <span class="n">argmax_pred</span><span class="p">,</span> <span class="n">argmax_gt</span><span class="p">,</span> <span class="n">h_diff</span><span class="p">,</span> <span class="n">v_diff</span><span class="p">,</span> <span class="n">diagr</span><span class="p">,</span> <span class="n">diagl</span><span class="p">,</span> <span class="n">special_diagr</span><span class="p">,</span> <span class="n">special_diagl</span>
+    <span class="p">)</span>
+
+    <span class="c1"># time graph creation</span>
+    <span class="c1"># graph_time = timeit.timeit(&quot;new_create_graph(paired_img, argmax_pred, argmax_gt, h_diff, v_diff, diagr, diagl)&quot;, globals=locals() | globals(), number=1)</span>
+    <span class="c1"># print(f&quot;Small: Graph creation time: {graph_time}&quot;)</span>
+
+    <span class="c1"># identify critical nodes</span>
+    <span class="n">critical_nodes</span><span class="p">,</span> <span class="n">cluster_lengths</span><span class="p">,</span> <span class="n">error_types</span> <span class="o">=</span> <span class="n">get_critical_nodes</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+
+    <span class="c1"># time critical node identification</span>
+    <span class="c1"># critical_node_time = timeit.timeit(&quot;new_get_critical_nodes(graph)&quot;, globals=locals() | globals(), number=1)</span>
+    <span class="c1"># print(f&quot;Small: Critical node identification time: {critical_node_time}&quot;)</span>
+
+    <span class="c1"># create relabel masks for all classes</span>
+    <span class="c1"># error_region_infos = new_create_relabel_masks(one_hot_pred, graph, critical_nodes, labelled_regions)</span>
+    <span class="k">if</span> <span class="n">use_c</span><span class="p">:</span>
+        <span class="n">error_region_infos</span> <span class="o">=</span> <span class="n">create_relabel_masks_c</span><span class="p">(</span><span class="n">critical_nodes</span><span class="p">,</span> <span class="n">cluster_lengths</span><span class="p">,</span> <span class="n">labelled_regions</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">error_region_infos</span> <span class="o">=</span> <span class="n">create_relabel_masks</span><span class="p">(</span><span class="n">critical_nodes</span><span class="p">,</span> <span class="n">cluster_lengths</span><span class="p">,</span> <span class="n">labelled_regions</span><span class="p">)</span>
+
+    <span class="c1"># time relabel mask creation</span>
+    <span class="c1"># relabel_mask_time = timeit.timeit(&quot;new_create_relabel_masks(one_hot_pred, graph, critical_nodes, labelled_regions)&quot;, globals=locals() | globals(), number=1)</span>
+    <span class="c1"># print(f&quot;Small: Reabel mask creation time: {relabel_mask_time}&quot;)</span>
+
+    <span class="k">return</span> <span class="n">error_region_infos</span><span class="p">,</span> <span class="n">sample_no</span><span class="p">,</span> <span class="n">error_types</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_single_sample_class_metric</span><span class="p">(</span>
+    <span class="n">argmax_pred</span><span class="p">,</span> <span class="n">argmax_gt</span><span class="p">,</span> <span class="n">h_diff</span><span class="p">,</span> <span class="n">v_diff</span><span class="p">,</span> <span class="n">diagr</span><span class="p">,</span> <span class="n">diagl</span><span class="p">,</span> <span class="n">special_diagr</span><span class="p">,</span> <span class="n">special_diagl</span><span class="p">,</span> <span class="n">sample_no</span>
+<span class="p">):</span>
+    <span class="c1"># create graph</span>
+    <span class="n">graph</span><span class="p">,</span> <span class="n">labelled_regions</span> <span class="o">=</span> <span class="n">create_graph</span><span class="p">(</span>
+        <span class="n">argmax_pred</span><span class="p">,</span> <span class="n">argmax_gt</span><span class="p">,</span> <span class="n">h_diff</span><span class="p">,</span> <span class="n">v_diff</span><span class="p">,</span> <span class="n">diagr</span><span class="p">,</span> <span class="n">diagl</span><span class="p">,</span> <span class="n">special_diagr</span><span class="p">,</span> <span class="n">special_diagl</span>
+    <span class="p">)</span>
+
+    <span class="c1"># get error causing neighbors</span>
+    <span class="n">error_count</span> <span class="o">=</span> <span class="n">get_critical_nbrs</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">error_count</span><span class="p">,</span> <span class="n">sample_no</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">single_sample_class_loss</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+    <span class="c1"># time = timeit.timeit(&quot;_new_single_sample_class_loss(**args)&quot;, globals=locals() | globals(), number=1)</span>
+    <span class="c1"># print(f&quot;Time: {time}&quot;)</span>
+    <span class="k">return</span> <span class="n">_single_sample_class_loss</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">single_sample_class_metric</span><span class="p">(</span><span class="n">args</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+    <span class="c1"># time = timeit.timeit(&quot;_new_single_sample_class_metric(**args)&quot;, globals=locals() | globals(), number=1)</span>
+    <span class="c1"># print(f&quot;Time: {time}&quot;)</span>
+    <span class="k">return</span> <span class="n">_single_sample_class_metric</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">find_saddle_points_in_8_neighborhood</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
+    <span class="c1"># tensor: (1, num_classes, H, W)</span>
+    <span class="n">unfolded</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">unfold</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+    <span class="c1"># unfold now has dim (1, num_classes*3, H*W)</span>
+    <span class="c1"># now reshape unfold to (1, num_classes, 3, H*W)</span>
+    <span class="n">unfolded</span> <span class="o">=</span> <span class="n">unfolded</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+    <span class="c1"># now take the max for each 3x1 window</span>
+    <span class="n">max_vertical_pooled</span> <span class="o">=</span> <span class="n">unfolded</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">min_vertical_pooled</span> <span class="o">=</span> <span class="n">unfolded</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="n">max_vertical</span> <span class="o">=</span> <span class="n">max_vertical_pooled</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+    <span class="n">min_vertical</span> <span class="o">=</span> <span class="n">min_vertical_pooled</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+
+    <span class="c1"># now unfold in the horizontal direction</span>
+    <span class="n">unfolded</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">unfold</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="c1"># unfold now has dim (1, num_classes*3, H*W)</span>
+    <span class="c1"># now reshape unfold to (1, num_classes, 3, H*W)</span>
+    <span class="n">unfolded</span> <span class="o">=</span> <span class="n">unfolded</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">3</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+
+    <span class="c1"># now take the max for each 1x3 window</span>
+    <span class="n">max_horizontal_pooled</span> <span class="o">=</span> <span class="n">unfolded</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+    <span class="n">min_horizontal_pooled</span> <span class="o">=</span> <span class="n">unfolded</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="n">max_horizontal</span> <span class="o">=</span> <span class="n">max_horizontal_pooled</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+    <span class="n">min_horizontal</span> <span class="o">=</span> <span class="n">min_horizontal_pooled</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">tensor</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+
+    <span class="c1"># A saddle point is a maximum in one direction and a minimum in the perpendicular direction</span>
+    <span class="n">saddle_mask</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span>
+            <span class="p">((</span><span class="n">tensor</span> <span class="o">&gt;=</span> <span class="n">max_horizontal</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">tensor</span> <span class="o">&lt;=</span> <span class="n">min_vertical</span><span class="p">))</span>  <span class="c1"># Horizontal max, vertical min</span>
+            <span class="o">|</span> <span class="p">((</span><span class="n">tensor</span> <span class="o">&gt;=</span> <span class="n">max_vertical</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">tensor</span> <span class="o">&lt;=</span> <span class="n">min_horizontal</span><span class="p">))</span>  <span class="c1"># Vertical max, horizontal min</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="p">)</span>  <span class="c1"># Remove batch and channel dimensions</span>
+
+    <span class="k">return</span> <span class="n">saddle_mask</span>
+
+
+<div class="viewcode-block" id="TopographLoss">
+<a class="viewcode-back" href="../../../../../topolosses.losses.topograph.html#topolosses.losses.topograph.TopographLoss">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TopographLoss</span><span class="p">(</span><span class="n">_Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;TopographLoss is a loss function designed to ensure strict topology preservation during image segmentation tasks.</span>
+
+<span class="sd">    The loss has been defined:</span>
+<span class="sd">        Lux et al (2024) Topograph: An efficient Graph-Based Framework for</span>
+<span class="sd">        Strictly Topology Preserving Image Segmentation (https://arxiv.org/pdf/2411.03228)</span>
+
+<span class="sd">    By default the topograph component is combined with a dice loss comnponent.</span>
+<span class="sd">    For more flexibility a custom base loss function can be passed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">num_processes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">use_c</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">sphere</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">eight_connectivity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">aggregation</span><span class="p">:</span> <span class="n">AggregationType</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">MEAN</span><span class="p">,</span>
+        <span class="n">thres_distr</span><span class="p">:</span> <span class="n">ThresholdDistribution</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">ThresholdDistribution</span><span class="o">.</span><span class="n">NONE</span><span class="p">,</span>
+        <span class="n">thres_var</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">include_background</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">softmax</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">sigmoid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_base_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">base_loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_Loss</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            num_processes (int): Number of parallel processes to use for computation. TODO how exactly is this implemented and what does the user need to know?</span>
+<span class="sd">            use_c (bool): Whether to use the C implementation (likely for performance) instead of a pure Python version. Defaults to True.</span>
+<span class="sd">                TODO figure out if this option is useful if the package always comes with c++ extension.</span>
+<span class="sd">            sphere (bool): If True, adds padding to create periodic boundary conditions (sphere topology). Defaults to False</span>
+<span class="sd">            eight_connectivity (bool): Determines whether to use 8-connectivity for foreground components (i.e., diagonal adjacent pixels form a single connected component)</span>
+<span class="sd">                versus 4-connectivity when building the component graph. Defaults to 8-connectivity.</span>
+<span class="sd">            aggregation (AggregationType): Specifies the aggregation method for loss calculation across the batch.</span>
+<span class="sd">                Possible values are mean, sum, max, min, ce, rms, and leg. Defaults to mean</span>
+<span class="sd">            thres_distr (ThresholdDistribution): Determines the distribution used for sampling the binarization threshold.</span>
+<span class="sd">                Possible values are uniform and gaussian. Defaults to None which is a constant binarization threshold of 0.5.</span>
+<span class="sd">            thres_var (float):  If a thres_distribution is set, this varibale controls the magnitude of random threshold variation applied during loss computation,</span>
+<span class="sd">                with higher values increasing the noise. Defaults to 0.0.</span>
+<span class="sd">            include_background (bool): If `True`, includes the background class in the topograph computation.</span>
+<span class="sd">                Background inclusion in the base loss component should be controlled independently.</span>
+<span class="sd">            alpha (float): Weighting factor for the topograph loss component. Is only applied if a base loss is used. Defaults to 0.1.</span>
+<span class="sd">            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the CLDice loss.</span>
+<span class="sd">                Typically used for binary segmentation. Defaults to `False`.</span>
+<span class="sd">            softmax (bool): If `True`, applies a softmax activation to the input before computing the CLDice loss.</span>
+<span class="sd">                This is useful for multi-class segmentation tasks. Defaults to `False`.</span>
+<span class="sd">                For other activation functions set sigmoid and softmax to false and apply the transformation before passing inputs to the loss.</span>
+<span class="sd">            use_base_component (bool): if false the loss only consists of the Topograph component.</span>
+<span class="sd">                A forward call will return the full Topograph component.</span>
+<span class="sd">                base_loss, weights, and alpha will be ignored if this flag is set to false.</span>
+<span class="sd">            base_loss (_Loss, optional): The base loss function to be used alongside the Topograph loss.</span>
+<span class="sd">                Defaults to `None`, meaning a Dice component with default parameters will be used.  .</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If more than one of [sigmoid, softmax] is set to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">([</span><span class="n">sigmoid</span><span class="p">,</span> <span class="n">softmax</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;At most one of [sigmoid, softmax] can be set to True. &quot;</span>
+                <span class="s2">&quot;You can only choose one of these options at a time or none if you already pass probabilites.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">TopographLoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_processes</span> <span class="o">=</span> <span class="n">num_processes</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_processes</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">num_processes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_c</span> <span class="o">=</span> <span class="n">use_c</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sphere</span> <span class="o">=</span> <span class="n">sphere</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eight_connectivity</span> <span class="o">=</span> <span class="n">eight_connectivity</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thres_distr</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">ThresholdDistribution</span><span class="p">(</span><span class="n">thres_distr</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">thres_distr</span><span class="p">,</span> <span class="n">ThresholdDistribution</span><span class="p">)</span> <span class="k">else</span> <span class="n">thres_distr</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thres_var</span> <span class="o">=</span> <span class="n">thres_var</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">aggregation</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">AggregationType</span><span class="p">(</span><span class="n">aggregation</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">aggregation</span><span class="p">,</span> <span class="n">AggregationType</span><span class="p">)</span> <span class="k">else</span> <span class="n">aggregation</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_background</span> <span class="o">=</span> <span class="n">include_background</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span> <span class="o">=</span> <span class="n">softmax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid</span> <span class="o">=</span> <span class="n">sigmoid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="o">=</span> <span class="n">use_base_loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span> <span class="o">=</span> <span class="n">base_loss</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">base_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;base_loss is ignored beacuse use_base_component is set to false&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Alpha &lt; 1 has no effect when no base component is used.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TopographLoss.forward">
+<a class="viewcode-back" href="../../../../../topolosses.losses.topograph.html#topolosses.losses.topograph.TopographLoss.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates the forward pass of the topograph loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input (Tensor): Input tensor of shape (batch_size, num_classes, H, W).</span>
+<span class="sd">            target (Tensor): Target tensor of shape (batch_size, num_classes, H, W).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: The calculated topological loss.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the shape of the ground truth is different from the input shape.</span>
+<span class="sd">            ValueError: If softmax=True and the number of channels for the prediction is 1.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ground truth has different shape (</span><span class="si">{</span><span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">) from input (</span><span class="si">{</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+        <span class="n">starting_class</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_background</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">num_classes</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;softmax=True requires multiple channels for class probabilities, but received a single-channel input.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_background</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Single-channel prediction detected. The `include_background=False` setting  will be ignored.&quot;</span>
+                <span class="p">)</span>
+                <span class="n">starting_class</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function</span>
+        <span class="c1"># These settings have to be controlled by the user when initializing the base loss function</span>
+        <span class="n">base_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">base_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">:</span>
+            <span class="nb">input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="p">:</span>
+            <span class="nb">input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">base_loss</span> <span class="o">=</span> <span class="n">compute_default_dice_loss</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+
+        <span class="n">topograph_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">topograph_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_topopgraph_loss</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">target</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span> <span class="n">starting_class</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">)</span>
+
+        <span class="n">total_loss</span> <span class="o">=</span> <span class="n">topograph_loss</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="k">else</span> <span class="n">base_loss</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">topograph_loss</span>
+
+        <span class="k">return</span> <span class="n">total_loss</span></div>
+
+
+<div class="viewcode-block" id="TopographLoss.compute_topopgraph_loss">
+<a class="viewcode-back" href="../../../../../topolosses.losses.topograph.html#topolosses.losses.topograph.TopographLoss.compute_topopgraph_loss">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_topopgraph_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">starting_class</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">thres_distr</span> <span class="o">!=</span> <span class="n">ThresholdDistribution</span><span class="o">.</span><span class="n">NONE</span><span class="p">:</span>
+            <span class="c1"># Get the random probability to add to a class</span>
+            <span class="k">match</span> <span class="bp">self</span><span class="o">.</span><span class="n">thres_distr</span><span class="p">:</span>
+                <span class="k">case</span> <span class="n">ThresholdDistribution</span><span class="o">.</span><span class="n">UNIFORM</span><span class="p">:</span>
+                    <span class="n">thres_noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">thres_var</span> <span class="o">/</span> <span class="p">(</span><span class="n">num_classes</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">case</span> <span class="n">ThresholdDistribution</span><span class="o">.</span><span class="n">GAUSSIAN</span><span class="p">:</span>
+                    <span class="n">thres_noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">(</span>
+                        <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">device</span>
+                    <span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thres_var</span> <span class="o">/</span> <span class="p">(</span><span class="n">num_classes</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+
+            <span class="n">input_detached</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+
+            <span class="c1"># get class that is being reinforced</span>
+            <span class="n">noise_class</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span> <span class="n">device</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="n">neg_noise</span> <span class="o">=</span> <span class="n">thres_noise</span> <span class="o">/</span> <span class="p">(</span><span class="n">num_classes</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># Randomly add noise to the input (we also add neg_noise bc we substract it later)</span>
+            <span class="n">input_detached</span><span class="p">[:,</span> <span class="n">noise_class</span><span class="p">]</span> <span class="o">+=</span> <span class="n">thres_noise</span> <span class="o">+</span> <span class="n">neg_noise</span>
+
+            <span class="n">input_detached</span> <span class="o">-=</span> <span class="n">neg_noise</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="c1"># Re-attach the modified input to the computation graph without affecting gradients</span>
+            <span class="n">modified_input</span> <span class="o">=</span> <span class="n">input_detached</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">modified_input</span> <span class="o">=</span> <span class="nb">input</span>
+
+        <span class="c1"># create argmax encoding using torch</span>
+        <span class="n">argmax_preds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">modified_input</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">argmax_gts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sphere</span><span class="p">:</span>
+            <span class="n">argmax_preds</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">argmax_preds</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">argmax_gts</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">argmax_gts</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">single_calc_inputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># get critical nodes for each class</span>
+        <span class="k">for</span> <span class="n">class_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">starting_class</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">):</span>
+            <span class="c1"># binarize image</span>
+            <span class="n">bin_preds</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">argmax_preds</span><span class="p">)</span>
+            <span class="n">bin_gts</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">argmax_gts</span><span class="p">)</span>
+            <span class="n">bin_preds</span><span class="p">[</span><span class="n">argmax_preds</span> <span class="o">==</span> <span class="n">class_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">bin_gts</span><span class="p">[</span><span class="n">argmax_gts</span> <span class="o">==</span> <span class="n">class_index</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="n">paired_imgs</span> <span class="o">=</span> <span class="n">bin_preds</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">bin_gts</span>
+
+            <span class="n">diag_val_1</span><span class="p">,</span> <span class="n">diag_val_2</span> <span class="o">=</span> <span class="p">(</span><span class="o">-</span><span class="mi">4</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eight_connectivity</span> <span class="k">else</span> <span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="o">-</span><span class="mi">4</span><span class="p">)</span>
+
+            <span class="n">paired_imgs</span><span class="p">[</span><span class="n">paired_imgs</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">diag_val_1</span>
+            <span class="n">paired_imgs</span><span class="p">[</span><span class="n">paired_imgs</span> <span class="o">==</span> <span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">diag_val_2</span>
+
+            <span class="n">h_diff</span><span class="p">,</span> <span class="n">v_diff</span> <span class="o">=</span> <span class="n">new_compute_diffs</span><span class="p">(</span><span class="n">paired_imgs</span><span class="p">)</span>
+            <span class="n">diagr</span><span class="p">,</span> <span class="n">diagl</span><span class="p">,</span> <span class="n">special_diag_r</span><span class="p">,</span> <span class="n">special_diag_l</span> <span class="o">=</span> <span class="n">new_compute_diag_diffs</span><span class="p">(</span><span class="n">paired_imgs</span><span class="p">,</span> <span class="n">th</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+
+            <span class="c1"># move all to cpu</span>
+            <span class="c1"># TODO: Fix device handling</span>
+            <span class="n">bin_preds</span> <span class="o">=</span> <span class="n">bin_preds</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">bin_gts</span> <span class="o">=</span> <span class="n">bin_gts</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">h_diff</span> <span class="o">=</span> <span class="n">h_diff</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">v_diff</span> <span class="o">=</span> <span class="n">v_diff</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">diagr</span> <span class="o">=</span> <span class="n">diagr</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">diagl</span> <span class="o">=</span> <span class="n">diagl</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">special_diag_r</span> <span class="o">=</span> <span class="n">special_diag_r</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="n">special_diag_l</span> <span class="o">=</span> <span class="n">special_diag_l</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="c1"># create dict with function arguments</span>
+                <span class="n">single_calc_input</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;argmax_pred&quot;</span><span class="p">:</span> <span class="n">bin_preds</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">&quot;argmax_gt&quot;</span><span class="p">:</span> <span class="n">bin_gts</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">&quot;h_diff&quot;</span><span class="p">:</span> <span class="n">h_diff</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">&quot;v_diff&quot;</span><span class="p">:</span> <span class="n">v_diff</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">&quot;diagr&quot;</span><span class="p">:</span> <span class="n">diagr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">&quot;diagl&quot;</span><span class="p">:</span> <span class="n">diagl</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">&quot;special_diagr&quot;</span><span class="p">:</span> <span class="n">special_diag_r</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">&quot;special_diagl&quot;</span><span class="p">:</span> <span class="n">special_diag_l</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                    <span class="s2">&quot;sample_no&quot;</span><span class="p">:</span> <span class="n">i</span><span class="p">,</span>
+                    <span class="s2">&quot;use_c&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_c</span><span class="p">,</span>
+                <span class="p">}</span>
+                <span class="n">single_calc_inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">single_calc_input</span><span class="p">)</span>
+
+        <span class="n">relabel_masks</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_processes</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">chunksize</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="n">single_calc_inputs</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_processes</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">single_calc_inputs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_processes</span> <span class="k">else</span> <span class="mi">1</span>
+            <span class="p">)</span>
+            <span class="n">relabel_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pool</span><span class="o">.</span><span class="n">imap_unordered</span><span class="p">(</span><span class="n">single_sample_class_loss</span><span class="p">,</span> <span class="n">single_calc_inputs</span><span class="p">,</span> <span class="n">chunksize</span><span class="o">=</span><span class="n">chunksize</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">relabel_masks</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">single_sample_class_loss</span><span class="p">,</span> <span class="n">single_calc_inputs</span><span class="p">)</span>
+
+        <span class="c1"># calculate the topological loss for each class</span>
+        <span class="n">g_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">region_error_infos</span><span class="p">,</span> <span class="n">sample_no</span><span class="p">,</span> <span class="n">error_types</span> <span class="ow">in</span> <span class="n">relabel_masks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation</span> <span class="o">==</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">LEG</span><span class="p">:</span>
+                <span class="c1"># clone and detach the input to avoid gradients</span>
+                <span class="n">input_mask_util</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+                <span class="c1"># calculate the local maxima</span>
+                <span class="n">local_maxima</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">max_pool2d</span><span class="p">(</span>
+                    <span class="n">input_mask_util</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span>
+                <span class="p">)</span>
+                <span class="c1"># calculate the difference to all neighboring pixels</span>
+
+                <span class="n">local_maxima</span> <span class="o">=</span> <span class="n">local_maxima</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                <span class="c1"># get the local maxima in the region</span>
+                <span class="n">local_maxima_in_region</span> <span class="o">=</span> <span class="n">input_mask_util</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span> <span class="o">&gt;=</span> <span class="n">local_maxima</span>
+                <span class="c1"># put the local maxima on the gpu</span>
+                <span class="n">local_maxima_in_region</span> <span class="o">=</span> <span class="n">local_maxima_in_region</span><span class="o">.</span><span class="n">bool</span><span class="p">()</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+                <span class="c1"># get the saddle points</span>
+                <span class="n">saddle_mask</span> <span class="o">=</span> <span class="n">find_saddle_points_in_8_neighborhood</span><span class="p">(</span><span class="n">input_mask_util</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="p">:]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;local maxima shape: &quot;</span><span class="p">,</span> <span class="n">local_maxima_in_region</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;saddle shape: &quot;</span><span class="p">,</span> <span class="n">saddle_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="n">nominator_means</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># torch.zeros(len(region_error_infos), device=input.device)</span>
+                <span class="n">num_elements</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># torch.zeros(len(region_error_infos), device=input.device)</span>
+                <span class="n">found_or_not_dict</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s2">&quot;saddle_yes&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s2">&quot;saddle_no&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s2">&quot;single_local_maxima&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s2">&quot;multiple_local_maxima&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                    <span class="s2">&quot;no_local_maxima&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="p">}</span>
+
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">region_indices</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">region_error_infos</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sphere</span><span class="p">:</span>
+                    <span class="n">region_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">region_indices</span><span class="p">)</span>
+                    <span class="n">region_indices</span> <span class="o">-=</span> <span class="mi">1</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation</span> <span class="o">!=</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">CE</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation</span> <span class="o">!=</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">LEG</span><span class="p">:</span>
+                    <span class="n">class_indices</span> <span class="o">=</span> <span class="n">argmax_preds</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                    <span class="n">nominator</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="n">class_indices</span><span class="p">,</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+
+                <span class="k">match</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation</span><span class="p">:</span>
+                    <span class="k">case</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">MEAN</span><span class="p">:</span>
+                        <span class="n">g_loss</span> <span class="o">+=</span> <span class="n">nominator</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                    <span class="k">case</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">RMS</span><span class="p">:</span>
+                        <span class="n">g_loss</span> <span class="o">+=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sqrt</span><span class="p">((</span><span class="n">nominator</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">())</span>
+                    <span class="k">case</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">SUM</span><span class="p">:</span>
+                        <span class="n">g_loss</span> <span class="o">+=</span> <span class="n">nominator</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                    <span class="k">case</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">MAX</span><span class="p">:</span>
+                        <span class="n">g_loss</span> <span class="o">+=</span> <span class="n">nominator</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                    <span class="k">case</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">MIN</span><span class="p">:</span>
+                        <span class="n">g_loss</span> <span class="o">+=</span> <span class="n">nominator</span><span class="o">.</span><span class="n">min</span><span class="p">()</span>
+                    <span class="k">case</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">LEG</span><span class="p">:</span>
+
+                        <span class="n">class_indices</span> <span class="o">=</span> <span class="n">argmax_preds</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                        <span class="c1"># local_maxima_indices = np.nonzero(local_maxima_in_region[class_index, :, :])</span>
+                        <span class="c1"># local_maxima_mask = local_maxima_in_region[class_index, :, :]</span>
+                        <span class="c1"># check for indices that are in both region_indices and local_maxima_indices</span>
+                        <span class="n">region_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">device</span><span class="o">=</span><span class="nb">input</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+                        <span class="n">region_mask</span><span class="p">[</span><span class="n">class_indices</span><span class="p">,</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">True</span>
+
+                        <span class="c1"># create the mean loss that is for all elements in the region</span>
+                        <span class="c1"># mean_loss = input[sample_no, class_index, region_indices[0], region_indices[1]].mean()</span>
+                        <span class="c1"># nominator_means.append(mean_loss)</span>
+                        <span class="c1"># num_elements.append(1)</span>
+
+                        <span class="c1"># this is the isolated component case</span>
+                        <span class="k">if</span> <span class="n">error_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">error_types</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+
+                            <span class="c1"># 0 has a correct foreground neighbor and is wrongly background</span>
+                            <span class="c1"># if error_types[i] == 0 and class_index == 0:</span>
+                            <span class="c1">#     base_loss = input[sample_no, class_index, region_indices[0], region_indices[1]].max()</span>
+                            <span class="c1"># # 0 has a correct foreground neighbor and is wrongly foreground</span>
+                            <span class="c1"># elif error_types[i] == 0 and class_index == 1:</span>
+                            <span class="c1">#     base_loss = input[sample_no, class_index, region_indices[0], region_indices[1]].min()</span>
+                            <span class="c1"># # 1 has a correct background neighbor and is wrongly foreground</span>
+                            <span class="c1"># elif error_types[i] == 1 and class_index == 1:</span>
+                            <span class="c1">#     base_loss = input[sample_no, class_index, region_indices[0], region_indices[1]].max()</span>
+                            <span class="c1"># # 1 has a correct background neigbhor and is wrongly background</span>
+                            <span class="c1"># elif error_types[i] == 1 and class_index == 0:</span>
+                            <span class="c1">#     base_loss = input[sample_no, class_index, region_indices[0], region_indices[1]].min()</span>
+
+                            <span class="n">base_loss</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="n">class_index</span><span class="p">,</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+
+                            <span class="n">nominator_means</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">base_loss</span><span class="p">)</span>
+                            <span class="n">num_elements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+                            <span class="n">intersection_mask</span> <span class="o">=</span> <span class="n">region_mask</span> <span class="o">&amp;</span> <span class="n">local_maxima_in_region</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">intersection_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                                <span class="n">found_or_not_dict</span><span class="p">[</span><span class="s2">&quot;no_local_maxima&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="c1"># create a loss based on all but the largest local maxima in the region</span>
+                                <span class="n">leg_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">intersection_mask</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">leg_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+                                    <span class="n">found_or_not_dict</span><span class="p">[</span><span class="s2">&quot;single_local_maxima&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">found_or_not_dict</span><span class="p">[</span><span class="s2">&quot;multiple_local_maxima&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                                    <span class="n">nominator</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="n">leg_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">leg_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">leg_indices</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+                                    <span class="c1"># print(f&quot;Found {len(nominator)} local maxima&quot;)</span>
+                                    <span class="c1"># remove the largest local maxima, if there are multiple just remove one</span>
+                                    <span class="n">largest_local_maxima</span> <span class="o">=</span> <span class="n">nominator</span> <span class="o">==</span> <span class="n">nominator</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+                                    <span class="c1"># get tthe index of the first largest local maxima</span>
+                                    <span class="n">remaining</span> <span class="o">=</span> <span class="n">largest_local_maxima</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]</span>
+                                    <span class="n">non_max</span> <span class="o">=</span> <span class="n">nominator</span><span class="p">[</span><span class="n">nominator</span> <span class="o">!=</span> <span class="n">nominator</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span><span class="o">.</span><span class="n">nonzero</span><span class="p">()</span>
+
+                                    <span class="n">all_idcs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">remaining</span><span class="p">,</span> <span class="n">non_max</span><span class="p">])</span>
+                                    <span class="n">nominator</span> <span class="o">=</span> <span class="n">nominator</span><span class="p">[</span><span class="n">all_idcs</span><span class="p">]</span>
+
+                                    <span class="c1"># check if there are still elements in the nominator, otherwise continue</span>
+                                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nominator</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                                        <span class="k">continue</span>
+                                    <span class="c1"># nominator = nominator[nominator != nominator.max()]</span>
+                                    <span class="c1"># append every element of the nominator to the nominator_means, so that we can calculate the mean later</span>
+                                    <span class="c1"># change nominator such that it can be appended without having different shapes</span>
+                                    <span class="k">else</span><span class="p">:</span>
+                                        <span class="n">mean_local_maxima</span> <span class="o">=</span> <span class="n">nominator</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                                        <span class="n">nominator_means</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_local_maxima</span><span class="p">)</span>
+                                        <span class="n">num_elements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nominator</span><span class="p">))</span>
+
+                        <span class="c1"># this is the connecectivity error</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># add a mean loss as a base loss</span>
+                            <span class="n">base_loss</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="n">class_indices</span><span class="p">,</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                            <span class="n">nominator_means</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">base_loss</span><span class="p">)</span>
+                            <span class="n">num_elements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                            <span class="c1"># create the loss based on the saddle points in the region</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;region mask shape&quot;</span><span class="p">,</span> <span class="n">region_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                            <span class="n">intersection_mask</span> <span class="o">=</span> <span class="n">region_mask</span> <span class="o">&amp;</span> <span class="n">saddle_mask</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;intersection mask shape&quot;</span><span class="p">,</span> <span class="n">intersection_mask</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">intersection_mask</span><span class="o">.</span><span class="n">any</span><span class="p">():</span>
+                                <span class="n">found_or_not_dict</span><span class="p">[</span><span class="s2">&quot;saddle_no&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">found_or_not_dict</span><span class="p">[</span><span class="s2">&quot;saddle_yes&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                                <span class="c1"># create a loss based on all saddle points in the region</span>
+                                <span class="n">leg_indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">intersection_mask</span><span class="p">,</span> <span class="n">as_tuple</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+                                <span class="n">nominator</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="n">leg_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">leg_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">leg_indices</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span>
+                                <span class="n">mean_saddle_points</span> <span class="o">=</span> <span class="n">nominator</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
+                                <span class="n">nominator_means</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_saddle_points</span><span class="p">)</span>
+                                <span class="n">num_elements</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                                <span class="c1"># num_elements.append(1)</span>
+                                <span class="c1"># print(f&quot;Found {len(nominator)} saddle points&quot;)</span>
+                            <span class="c1"># check if there are local maxima in the region</span>
+                            <span class="c1"># intersection_mask = region_mask &amp; local_maxima_mask</span>
+                            <span class="c1"># print the number of local maxima in the region</span>
+                            <span class="c1"># print(f&quot;Found {len(torch.nonzero(intersection_mask, as_tuple=True)[0])} local maxima for connectivity error&quot;)</span>
+
+                    <span class="k">case</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">CE</span><span class="p">:</span>
+                        <span class="n">masked_input</span> <span class="o">=</span> <span class="nb">input</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="p">:,</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="n">masked_target</span> <span class="o">=</span> <span class="n">target</span><span class="p">[</span><span class="n">sample_no</span><span class="p">,</span> <span class="p">:,</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">region_indices</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="n">g_loss</span> <span class="o">+=</span> <span class="n">F</span><span class="o">.</span><span class="n">cross_entropy</span><span class="p">(</span><span class="n">masked_input</span><span class="p">,</span> <span class="n">masked_target</span><span class="p">,</span> <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">)</span>
+                    <span class="k">case</span><span class="w"> </span><span class="k">_</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid aggregation type: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">aggregation</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aggregation</span> <span class="o">==</span> <span class="n">AggregationType</span><span class="o">.</span><span class="n">LEG</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">lo</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nominator_means</span><span class="p">):</span>
+                    <span class="n">g_loss</span> <span class="o">+=</span> <span class="n">lo</span> <span class="o">*</span> <span class="n">num_elements</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">sum</span><span class="p">(</span><span class="n">num_elements</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">g_loss</span> <span class="o">*=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nominator_means</span><span class="p">)</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">(</span><span class="n">num_elements</span><span class="p">)</span>
+        <span class="c1"># normalize by number of classes and batch size</span>
+        <span class="n">g_loss</span> <span class="o">/=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">num_classes</span> <span class="o">-</span> <span class="n">starting_class</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">g_loss</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Janek Falkenstein.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

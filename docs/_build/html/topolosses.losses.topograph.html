@@ -1,0 +1,205 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TopographLoss &mdash; topolosses  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="WarpingLoss" href="topolosses.losses.warping.html" />
+    <link rel="prev" title="MosinLoss" href="topolosses.losses.mosin.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            topolosses
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Losses:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.betti_matching.html">BettiMatchingLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.cldice.html">CLDiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.dice.html">DiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.hutopo.html">HutopoLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.mosin.html">MosinLoss</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">TopographLoss</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#topolosses.losses.topograph.TopographLoss"><code class="docutils literal notranslate"><span class="pre">TopographLoss</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#topolosses.losses.topograph.TopographLoss.compute_topopgraph_loss"><code class="docutils literal notranslate"><span class="pre">TopographLoss.compute_topopgraph_loss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#topolosses.losses.topograph.TopographLoss.forward"><code class="docutils literal notranslate"><span class="pre">TopographLoss.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.warping.html">WarpingLoss</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">utils:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.utils.html">Utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">topolosses</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">TopographLoss</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/topolosses.losses.topograph.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-topolosses.losses.topograph">
+<span id="topographloss"></span><h1>TopographLoss<a class="headerlink" href="#module-topolosses.losses.topograph" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="topolosses.losses.topograph.TopographLoss">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">topolosses.losses.topograph.</span></span><span class="sig-name descname"><span class="pre">TopographLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/topolosses/losses/topograph/src/topograph_loss.html#TopographLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#topolosses.losses.topograph.TopographLoss" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_Loss</span></code></p>
+<p>TopographLoss is a loss function designed to ensure strict topology preservation during image segmentation tasks.</p>
+<dl class="simple">
+<dt>The loss has been defined:</dt><dd><p>Lux et al (2024) Topograph: An efficient Graph-Based Framework for
+Strictly Topology Preserving Image Segmentation (<a class="reference external" href="https://arxiv.org/pdf/2411.03228">https://arxiv.org/pdf/2411.03228</a>)</p>
+</dd>
+</dl>
+<p>By default the topograph component is combined with a dice loss comnponent.
+For more flexibility a custom base loss function can be passed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_processes</strong> (<em>int</em>) – Number of parallel processes to use for computation. TODO how exactly is this implemented and what does the user need to know?</p></li>
+<li><p><strong>use_c</strong> (<em>bool</em>) – Whether to use the C implementation (likely for performance) instead of a pure Python version. Defaults to True.
+TODO figure out if this option is useful if the package always comes with c++ extension.</p></li>
+<li><p><strong>sphere</strong> (<em>bool</em>) – If True, adds padding to create periodic boundary conditions (sphere topology). Defaults to False</p></li>
+<li><p><strong>eight_connectivity</strong> (<em>bool</em>) – Determines whether to use 8-connectivity for foreground components (i.e., diagonal adjacent pixels form a single connected component)
+versus 4-connectivity when building the component graph. Defaults to 8-connectivity.</p></li>
+<li><p><strong>aggregation</strong> (<em>AggregationType</em>) – Specifies the aggregation method for loss calculation across the batch.
+Possible values are mean, sum, max, min, ce, rms, and leg. Defaults to mean</p></li>
+<li><p><strong>thres_distr</strong> (<em>ThresholdDistribution</em>) – Determines the distribution used for sampling the binarization threshold.
+Possible values are uniform and gaussian. Defaults to None which is a constant binarization threshold of 0.5.</p></li>
+<li><p><strong>thres_var</strong> (<em>float</em>) – If a thres_distribution is set, this varibale controls the magnitude of random threshold variation applied during loss computation,
+with higher values increasing the noise. Defaults to 0.0.</p></li>
+<li><p><strong>include_background</strong> (<em>bool</em>) – If <cite>True</cite>, includes the background class in the topograph computation.
+Background inclusion in the base loss component should be controlled independently.</p></li>
+<li><p><strong>alpha</strong> (<em>float</em>) – Weighting factor for the topograph loss component. Is only applied if a base loss is used. Defaults to 0.1.</p></li>
+<li><p><strong>sigmoid</strong> (<em>bool</em>) – If <cite>True</cite>, applies a sigmoid activation to the input before computing the CLDice loss.
+Typically used for binary segmentation. Defaults to <cite>False</cite>.</p></li>
+<li><p><strong>softmax</strong> (<em>bool</em>) – If <cite>True</cite>, applies a softmax activation to the input before computing the CLDice loss.
+This is useful for multi-class segmentation tasks. Defaults to <cite>False</cite>.
+For other activation functions set sigmoid and softmax to false and apply the transformation before passing inputs to the loss.</p></li>
+<li><p><strong>use_base_component</strong> (<em>bool</em>) – if false the loss only consists of the Topograph component.
+A forward call will return the full Topograph component.
+base_loss, weights, and alpha will be ignored if this flag is set to false.</p></li>
+<li><p><strong>base_loss</strong> (<em>_Loss</em><em>, </em><em>optional</em>) – The base loss function to be used alongside the Topograph loss.
+Defaults to <cite>None</cite>, meaning a Dice component with default parameters will be used.  .</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If more than one of [sigmoid, softmax] is set to True.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="topolosses.losses.topograph.TopographLoss.compute_topopgraph_loss">
+<span class="sig-name descname"><span class="pre">compute_topopgraph_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">starting_class</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_classes</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/topolosses/losses/topograph/src/topograph_loss.html#TopographLoss.compute_topopgraph_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#topolosses.losses.topograph.TopographLoss.compute_topopgraph_loss" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="topolosses.losses.topograph.TopographLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="reference internal" href="_modules/topolosses/losses/topograph/src/topograph_loss.html#TopographLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#topolosses.losses.topograph.TopographLoss.forward" title="Link to this definition"></a></dt>
+<dd><p>Calculates the forward pass of the topograph loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>Tensor</em>) – Input tensor of shape (batch_size, num_classes, H, W).</p></li>
+<li><p><strong>target</strong> (<em>Tensor</em>) – Target tensor of shape (batch_size, num_classes, H, W).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The calculated topological loss.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If the shape of the ground truth is different from the input shape.</p></li>
+<li><p><strong>ValueError</strong> – If softmax=True and the number of channels for the prediction is 1.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="topolosses.losses.mosin.html" class="btn btn-neutral float-left" title="MosinLoss" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="topolosses.losses.warping.html" class="btn btn-neutral float-right" title="WarpingLoss" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Janek Falkenstein.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

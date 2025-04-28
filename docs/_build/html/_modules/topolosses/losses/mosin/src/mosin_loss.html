@@ -1,0 +1,291 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>topolosses.losses.mosin.src.mosin_loss &mdash; topolosses  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            topolosses
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Losses:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.betti_matching.html">BettiMatchingLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.cldice.html">CLDiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.dice.html">DiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.hutopo.html">HutopoLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.mosin.html">MosinLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.topograph.html">TopographLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.warping.html">WarpingLoss</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">utils:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.utils.html">Utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">topolosses</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">topolosses.losses.mosin.src.mosin_loss</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for topolosses.losses.mosin.src.mosin_loss</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch.nn.functional</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">F</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.modules.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">_Loss</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">torchvision</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">...utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_default_dice_loss</span>
+
+
+<div class="viewcode-block" id="MosinLoss">
+<a class="viewcode-back" href="../../../../../topolosses.losses.mosin.html#topolosses.losses.mosin.MosinLoss">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">MosinLoss</span><span class="p">(</span><span class="n">_Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A topology-aware loss function for curvilinear structure delineation using perceptual features.</span>
+
+<span class="sd">    The loss has been defined in:</span>
+<span class="sd">        Mosinska et al. (2018) Beyond the Pixel-Wise Loss for Topology-Aware Delineation.</span>
+
+<span class="sd">    This loss uses a pre-trained VGG19 network to extract multi-level features from predictions and targets,</span>
+<span class="sd">    comparing them to enforce topological consistency. By default, it combines with a pixel-wise base loss.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">include_background</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">softmax</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">sigmoid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_base_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">base_loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_Loss</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            include_background (bool): If `True`, includes the background class in feature extraction.</span>
+<span class="sd">                Defaults to `False`.</span>
+<span class="sd">            alpha (float): Weighting factor for combining the base loss and the topology loss</span>
+<span class="sd">                (i.e.: base_loss + alpha*topology_loss). Defaults to 0.5.</span>
+<span class="sd">            sigmoid (bool): If `True`, applies a sigmoid activation to the input before computing the loss.</span>
+<span class="sd">                Sigmoid is not applied before passing it to a custom base loss function. Defaults to `False`.</span>
+<span class="sd">            softmax (bool): If `True`, applies a softmax activation to the input before computing the loss.</span>
+<span class="sd">                Softmax is not applied before passing it to a custom base loss function. Defaults to `False`.</span>
+<span class="sd">            use_base_loss (bool): If `False`, the loss only consists of the topology component.</span>
+<span class="sd">                The base_loss and alpha will be ignored if this flag is set to false. Defaults to `True`.</span>
+<span class="sd">            base_loss (_Loss, optional): The base loss function to be used alongside the topology loss.</span>
+<span class="sd">                Defaults to `None`, meaning a standard cross-entropy loss will be used.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If more than one of [sigmoid, softmax] is set to True.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">([</span><span class="n">sigmoid</span><span class="p">,</span> <span class="n">softmax</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;At most one of [sigmoid, softmax] can be set to True. &quot;</span>
+                <span class="s2">&quot;You can only choose one of these options at a time or none if you already pass probabilites.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">MosinLoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="c1"># TODO ask authors if it makes sense to allow the users to use other models</span>
+        <span class="c1"># TODO think about adding this</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vgg</span> <span class="o">=</span> <span class="n">torchvision</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">vgg19</span><span class="p">(</span><span class="n">weights</span><span class="o">=</span><span class="n">torchvision</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">VGG19_Weights</span><span class="o">.</span><span class="n">IMAGENET1K_V1</span><span class="p">)</span><span class="o">.</span><span class="n">features</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">feature_layers</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">7</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer_names</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;conv1_2&quot;</span><span class="p">,</span> <span class="s2">&quot;conv2_2&quot;</span><span class="p">,</span> <span class="s2">&quot;conv3_4&quot;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feature_layers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_names</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">vgg</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">register_forward_hook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_activation</span><span class="p">(</span><span class="n">name</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vgg</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vgg</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_background</span> <span class="o">=</span> <span class="n">include_background</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span> <span class="o">=</span> <span class="n">softmax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid</span> <span class="o">=</span> <span class="n">sigmoid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="o">=</span> <span class="n">use_base_loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span> <span class="o">=</span> <span class="n">base_loss</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">base_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;base_loss is ignored beacuse use_base_component is set to false&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Alpha &lt; 1 has no effect when no base component is used.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MosinLoss.forward">
+<a class="viewcode-back" href="../../../../../topolosses.losses.mosin.html#topolosses.losses.mosin.MosinLoss.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates the forward pass of the Mosin Loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input (Tensor): Input tensor of shape (batch_size, num_classes, H, W).</span>
+<span class="sd">            target (Tensor): Target tensor of shape (batch_size, num_classes, H, W).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: The calculated betti matching loss.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the shape of the ground truth is different from the input shape.</span>
+<span class="sd">            ValueError: If softmax=True and the number of channels for the prediction is 1.</span>
+<span class="sd">            ValueError: If the input dimension is smaller than 32x32.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ground truth has different shape (</span><span class="si">{</span><span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">) from input (</span><span class="si">{</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">32</span> <span class="ow">or</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">32</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;input dimensions must be at least 32x32, got </span><span class="si">{</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">x</span><span class="si">{</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="n">starting_class</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_background</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">num_classes</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;softmax=True requires multiple channels for class probabilities, but received a single-channel input.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_background</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Single-channel prediction detected. The `include_background=False` setting  will be ignored.&quot;</span>
+                <span class="p">)</span>
+                <span class="n">starting_class</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Avoiding applying transformations sigmoid and softmax before passing the input to the base loss function</span>
+        <span class="c1"># These settings have to be controlled by the user when initializing the base loss function</span>
+        <span class="n">base_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">base_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">:</span>
+            <span class="nb">input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="p">:</span>
+            <span class="nb">input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">base_loss</span> <span class="o">=</span> <span class="n">compute_default_dice_loss</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+
+        <span class="n">mosin_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">mosin_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_mosin_loss</span><span class="p">(</span>
+                <span class="nb">input</span><span class="p">[:,</span> <span class="n">starting_class</span><span class="p">:]</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span>
+                <span class="n">target</span><span class="p">[:,</span> <span class="n">starting_class</span><span class="p">:]</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span>
+            <span class="p">)</span>
+
+        <span class="n">total_loss</span> <span class="o">=</span> <span class="n">mosin_loss</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="k">else</span> <span class="n">base_loss</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">mosin_loss</span>
+
+        <span class="k">return</span> <span class="n">total_loss</span></div>
+
+
+<div class="viewcode-block" id="MosinLoss.compute_mosin_loss">
+<a class="viewcode-back" href="../../../../../topolosses.losses.mosin.html#topolosses.losses.mosin.MosinLoss.compute_mosin_loss">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_mosin_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prediction</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+
+        <span class="c1"># for multi class input</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">start_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">start_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">prediction</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">pred_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_features</span><span class="p">(</span><span class="n">prediction</span><span class="p">)</span>
+        <span class="n">target_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_features</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+
+        <span class="n">loss</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">layer_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_names</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">+=</span> <span class="n">F</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">pred_features</span><span class="p">[</span><span class="n">layer_name</span><span class="p">],</span> <span class="n">target_features</span><span class="p">[</span><span class="n">layer_name</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">loss</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_activation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Hook to save activation for a given layer&quot;&quot;&quot;</span>
+
+        <span class="k">def</span><span class="w"> </span><span class="nf">hook</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">output</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">output</span>
+
+        <span class="k">return</span> <span class="n">hook</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_get_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Extract features from specified VGG layers&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># Clear previous activations</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vgg</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>  <span class="c1"># Forward pass through VGG</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">activation</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Janek Falkenstein.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

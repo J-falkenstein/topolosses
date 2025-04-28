@@ -1,0 +1,410 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>topolosses.losses.hutopo.src.hutopo_loss &mdash; topolosses  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../../../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../index.html" class="icon icon-home">
+            topolosses
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Losses:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.betti_matching.html">BettiMatchingLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.cldice.html">CLDiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.dice.html">DiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.hutopo.html">HutopoLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.mosin.html">MosinLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.topograph.html">TopographLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.warping.html">WarpingLoss</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">utils:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../topolosses.losses.utils.html">Utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">topolosses</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">topolosses.losses.hutopo.src.hutopo_loss</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for topolosses.losses.hutopo.src.hutopo_loss</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">torch.nn.modules.loss</span><span class="w"> </span><span class="kn">import</span> <span class="n">_Loss</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">gudhi</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">wasserstein</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># TODO adjust that this package is in a plcace where betti matching and hutopo can accesss it</span>
+<span class="c1"># from ...betti_matching.src import betti_matching</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sys</span><span class="o">,</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="c1"># sys.path.append(</span>
+<span class="c1">#     &quot;/home/computacenter/Documents/janek/topolosses/topolosses/losses/betti_matching/src/ext/Betti-Matching-3D-standalone-barcode/build&quot;</span>
+<span class="c1"># )</span>
+<span class="c1"># from ...betti_matching.src import betti_matching  # C++ Implementation</span>
+<span class="c1"># import betti_matching</span>
+
+<span class="c1"># will this path also be available during build or should i do a relative path there?</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">topolosses.losses.betti_matching.src</span><span class="w"> </span><span class="kn">import</span> <span class="n">betti_matching</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">...utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_default_dice_loss</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">...utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">FiltrationType</span>
+
+
+<div class="viewcode-block" id="HutopoLoss">
+<a class="viewcode-back" href="../../../../../topolosses.losses.hutopo.html#topolosses.losses.hutopo.HutopoLoss">[docs]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HutopoLoss</span><span class="p">(</span><span class="n">_Loss</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Topology-preserving segmentation loss combining pixel-wise and topological objectives.</span>
+
+<span class="sd">    This loss has been defined in:</span>
+<span class="sd">        Hu et al. (2019) &quot;Topology-Preserving Deep Image Segmentation&quot; (NeurIPS),</span>
+
+<span class="sd">    This loss penalizes discrepancies between persistence diagrams of predicted and ground-truth segmentations using a Wasserstein distance on birth–death pairs.</span>
+<span class="sd">    This loss can be used standalone or combined with a base segmentation loss via a weighting factor \u03b1.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">filtration_type</span><span class="p">:</span> <span class="n">FiltrationType</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">FiltrationType</span><span class="o">.</span><span class="n">SUPERLEVEL</span><span class="p">,</span>
+        <span class="n">num_processes</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">include_background</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">softmax</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">sigmoid</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_base_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">base_loss</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">_Loss</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            filtration_type (FiltrationType or string):</span>
+<span class="sd">                Choose how to build the topological filtration on probability maps:</span>
+<span class="sd">                  - `sublevel`:    sublevel-set on raw output.</span>
+<span class="sd">                  - `superlevel`:  sublevel-set on inverted output (1–p).</span>
+<span class="sd">                  - `bothlevels`:  both SUBLEVEL and SUPERLEVEL via concatenation.</span>
+
+<span class="sd">                Defaults to SUPERLEVEL.</span>
+<span class="sd">            num_processes (int):</span>
+<span class="sd">                Number of parallel processes for persistent homology computations. Higher values may improve throughput. Defaults to 1.</span>
+<span class="sd">            include_background (bool):</span>
+<span class="sd">                Whether to include the background channel when computing topological loss. If False, only foreground classes are used. Defaults to False.</span>
+<span class="sd">            alpha (float):</span>
+<span class="sd">                Weight between the base segmentation loss and the topological loss. Total loss = base_loss + alpha * topo_loss. Defaults to 0.5.</span>
+<span class="sd">            softmax (bool):</span>
+<span class="sd">                If True, applies softmax to network outputs before loss computation. Mutually exclusive with sigmoid. Defaults to False.</span>
+<span class="sd">            sigmoid (bool):</span>
+<span class="sd">                If True, applies sigmoid activation to network outputs before loss computation. Mutually exclusive with softmax. Defaults to False.</span>
+<span class="sd">            use_base_loss (bool):</span>
+<span class="sd">                Whether to include a pixel-wise base loss component. If False, only the topological term is used and alpha is ignored. Defaults to True.</span>
+<span class="sd">            base_loss (Optional[_Loss]):</span>
+<span class="sd">                Custom base loss function (e.g., DiceLoss, CrossEntropy). If None and use_base_loss=True, a default Dice loss is used. Defaults to None.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If both sigmoid and softmax are set to True simultaneously.</span>
+<span class="sd">            ValueError: If `filtration_type` is provided as a string but does not match any of the valid options (&#39;SUPERLEVEL&#39;, &#39;SUBLEVEL&#39;, &#39;BOTHLEVELS&#39;).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">sum</span><span class="p">([</span><span class="n">sigmoid</span><span class="p">,</span> <span class="n">softmax</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;At most one of [sigmoid, softmax] can be set to True. &quot;</span>
+                <span class="s2">&quot;You can only choose one of these options at a time or none if you already pass probabilites.&quot;</span>
+            <span class="p">)</span>
+
+        <span class="nb">super</span><span class="p">(</span><span class="n">HutopoLoss</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">filtration_type</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">FiltrationType</span><span class="p">(</span><span class="n">filtration_type</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">filtration_type</span><span class="p">,</span> <span class="n">FiltrationType</span><span class="p">)</span> <span class="k">else</span> <span class="n">filtration_type</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">filtration_type</span> <span class="o">=</span> <span class="n">filtration_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_processes</span> <span class="o">=</span> <span class="n">num_processes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">include_background</span> <span class="o">=</span> <span class="n">include_background</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="n">alpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span> <span class="o">=</span> <span class="n">softmax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid</span> <span class="o">=</span> <span class="n">sigmoid</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="o">=</span> <span class="n">use_base_loss</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span> <span class="o">=</span> <span class="n">base_loss</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">base_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;base_loss is ignored beacuse use_base_component is set to false&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s2">&quot;Alpha &lt; 1 has no effect when no base component is used.&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="HutopoLoss.forward">
+<a class="viewcode-back" href="../../../../../topolosses.losses.hutopo.html#topolosses.losses.hutopo.HutopoLoss.forward">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates the forward pass of the HutopoLoss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            input (Tensor): Input tensor of shape (batch_size, num_classes, H, W).</span>
+<span class="sd">            target (Tensor): Target tensor of shape (batch_size, num_classes, H, W).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: The calculated betti matching loss.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the shape of the ground truth is different from the input shape.</span>
+<span class="sd">            ValueError: If softmax=True and the number of channels for the prediction is 1.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">target</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;ground truth has different shape (</span><span class="si">{</span><span class="n">target</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">) from input (</span><span class="si">{</span><span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+        <span class="n">starting_class</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_background</span> <span class="k">else</span> <span class="mi">1</span>
+        <span class="n">num_classes</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">num_classes</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;softmax=True requires multiple channels for class probabilities, but received a single-channel input.&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">include_background</span><span class="p">:</span>
+                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                    <span class="s2">&quot;Single-channel prediction detected. The `include_background=False` setting  will be ignored.&quot;</span>
+                <span class="p">)</span>
+                <span class="n">starting_class</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Avoiding applying transformations like sigmoid, softmax, or one-vs-rest before passing the input to the base loss function</span>
+        <span class="c1"># These settings have to be controlled by the user when initializing the base loss function</span>
+        <span class="n">base_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">base_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">:</span>
+            <span class="nb">input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="p">:</span>
+            <span class="nb">input</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">base_loss</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">base_loss</span> <span class="o">=</span> <span class="n">compute_default_dice_loss</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+
+        <span class="n">hutopo_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">hutopo_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">compute_hutopo_loss</span><span class="p">(</span>
+                <span class="nb">input</span><span class="p">[:,</span> <span class="n">starting_class</span><span class="p">:]</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span>
+                <span class="n">target</span><span class="p">[:,</span> <span class="n">starting_class</span><span class="p">:]</span><span class="o">.</span><span class="n">float</span><span class="p">(),</span>
+            <span class="p">)</span>
+
+        <span class="n">total_loss</span> <span class="o">=</span> <span class="n">hutopo_loss</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_base_loss</span> <span class="k">else</span> <span class="n">base_loss</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">hutopo_loss</span>
+
+        <span class="k">return</span> <span class="n">total_loss</span></div>
+
+
+<div class="viewcode-block" id="HutopoLoss.compute_hutopo_loss">
+<a class="viewcode-back" href="../../../../../topolosses.losses.hutopo.html#topolosses.losses.hutopo.HutopoLoss.compute_hutopo_loss">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">compute_hutopo_loss</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the hutopo loss as the topological discrepancy by matching prediction and target persistence</span>
+<span class="sd">        diagrams via a squared-L2 Wasserstein distance on birth–death pairs.&quot;&quot;&quot;</span>
+
+        <span class="c1"># Flatten out channel dimension to treat each channel as a separate instance for multiclass prediction</span>
+        <span class="c1"># TODO this line is used in hutopo and betti matching so far, might be smart to move it either outside of these functions or to a parent class</span>
+        <span class="n">prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">prediction</span><span class="p">,</span> <span class="n">start_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">start_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtration_type</span> <span class="o">==</span> <span class="n">FiltrationType</span><span class="o">.</span><span class="n">SUPERLEVEL</span><span class="p">:</span>
+            <span class="c1"># Using (1 - ...) to allow binary sorting optimization on the label, which expects values [0, 1]</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">prediction</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">target</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">filtration_type</span> <span class="o">==</span> <span class="n">FiltrationType</span><span class="o">.</span><span class="n">BOTHLEVELS</span><span class="p">:</span>
+            <span class="c1"># Just duplicate the number of elements in the batch, once with sublevel, once with superlevel</span>
+            <span class="n">prediction</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">prediction</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">prediction</span><span class="p">])</span>
+            <span class="n">target</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">target</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">target</span><span class="p">])</span>
+
+        <span class="n">split_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_processes</span><span class="p">,</span> <span class="n">prediction</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_processes</span><span class="p">)</span>
+        <span class="n">predictions_list_numpy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">prediction</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">split_indices</span><span class="p">)</span>
+        <span class="n">targets_list_numpy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span> <span class="n">split_indices</span><span class="p">)</span>
+
+        <span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="n">current_instance_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">predictions_cpu_batch</span><span class="p">,</span> <span class="n">targets_cpu_batch</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">predictions_list_numpy</span><span class="p">,</span> <span class="n">targets_list_numpy</span><span class="p">):</span>
+            <span class="n">predictions_cpu_batch</span><span class="p">,</span> <span class="n">targets_cpu_batch</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">predictions_cpu_batch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)),</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="n">targets_cpu_batch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span>
+                <span class="nb">all</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">contiguous</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">predictions_cpu_batch</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">contiguous</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">targets_cpu_batch</span><span class="p">)</span>
+            <span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WARNING! Non-contiguous arrays encountered. Shape:&quot;</span><span class="p">,</span> <span class="n">predictions_cpu_batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="k">global</span> <span class="n">ENCOUNTERED_NONCONTIGUOUS</span>
+                <span class="n">ENCOUNTERED_NONCONTIGUOUS</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">predictions_cpu_batch</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">predictions_cpu_batch</span><span class="p">]</span>
+            <span class="n">targets_cpu_batch</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ascontiguousarray</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">targets_cpu_batch</span><span class="p">]</span>
+
+            <span class="n">barcodes_batch</span> <span class="o">=</span> <span class="n">betti_matching</span><span class="o">.</span><span class="n">compute_barcode</span><span class="p">(</span><span class="n">predictions_cpu_batch</span> <span class="o">+</span> <span class="n">targets_cpu_batch</span><span class="p">)</span>
+            <span class="n">barcodes_predictions</span><span class="p">,</span> <span class="n">barcodes_targets</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">barcodes_batch</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">barcodes_batch</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">],</span>
+                <span class="n">barcodes_batch</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">barcodes_batch</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:],</span>
+            <span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">barcode_prediction</span><span class="p">,</span> <span class="n">barcode_target</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">barcodes_predictions</span><span class="p">,</span> <span class="n">barcodes_targets</span><span class="p">):</span>
+                <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_wasserstein_loss</span><span class="p">(</span>
+                        <span class="n">prediction</span><span class="p">[</span><span class="n">current_instance_index</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                        <span class="n">target</span><span class="p">[</span><span class="n">current_instance_index</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                        <span class="n">barcode_prediction</span><span class="p">,</span>
+                        <span class="n">barcode_target</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="n">current_instance_index</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">losses</span><span class="p">))</span></div>
+
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_wasserstein_loss</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">prediction</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">barcode_result_prediction</span><span class="p">:</span> <span class="n">betti_matching</span><span class="o">.</span><span class="n">return_types</span><span class="o">.</span><span class="n">BarcodeResult</span><span class="p">,</span>
+        <span class="n">barcode_result_target</span><span class="p">:</span> <span class="n">betti_matching</span><span class="o">.</span><span class="n">return_types</span><span class="o">.</span><span class="n">BarcodeResult</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute the squared‐L2 Wasserstein distance between two persistence diagrams.&quot;&quot;&quot;</span>
+
+        <span class="n">dims</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">barcode_result_prediction</span><span class="o">.</span><span class="n">birth_coordinates</span><span class="p">)</span>
+        <span class="n">losses_by_dim</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dims</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prediction</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dims</span><span class="p">):</span>
+            <span class="p">(</span>
+                <span class="n">prediction_birth_coordinates</span><span class="p">,</span>
+                <span class="n">prediction_death_coordinates</span><span class="p">,</span>
+                <span class="n">target_birth_coordinates</span><span class="p">,</span>
+                <span class="n">target_death_coordinates</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prediction</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">array</span> <span class="ow">in</span> <span class="p">[</span>
+                    <span class="n">barcode_result_prediction</span><span class="o">.</span><span class="n">birth_coordinates</span><span class="p">[</span><span class="n">dim</span><span class="p">],</span>
+                    <span class="n">barcode_result_prediction</span><span class="o">.</span><span class="n">death_coordinates</span><span class="p">[</span><span class="n">dim</span><span class="p">],</span>
+                    <span class="n">barcode_result_target</span><span class="o">.</span><span class="n">birth_coordinates</span><span class="p">[</span><span class="n">dim</span><span class="p">],</span>
+                    <span class="n">barcode_result_target</span><span class="o">.</span><span class="n">death_coordinates</span><span class="p">[</span><span class="n">dim</span><span class="p">],</span>
+                <span class="p">]</span>
+            <span class="p">]</span>
+
+            <span class="c1"># (M, 2) tensor of persistence pairs for prediction</span>
+            <span class="n">prediction_pairs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">prediction</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))]</span>
+                    <span class="k">for</span> <span class="n">coords</span> <span class="ow">in</span> <span class="p">[</span><span class="n">prediction_birth_coordinates</span><span class="p">,</span> <span class="n">prediction_death_coordinates</span><span class="p">]</span>
+                <span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="c1"># (M, 2) tensor of persistence pairs for target</span>
+            <span class="n">target_pairs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">target</span><span class="p">[</span><span class="nb">tuple</span><span class="p">(</span><span class="n">coords</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">coords</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]))]</span>
+                    <span class="k">for</span> <span class="n">coords</span> <span class="ow">in</span> <span class="p">[</span><span class="n">target_birth_coordinates</span><span class="p">,</span> <span class="n">target_death_coordinates</span><span class="p">]</span>
+                <span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+
+            <span class="c1"># TODO check if the adjustments to order=2 and internal_p=2 is correct</span>
+            <span class="n">_</span><span class="p">,</span> <span class="n">matching</span> <span class="o">=</span> <span class="n">wasserstein</span><span class="o">.</span><span class="n">wasserstein_distance</span><span class="p">(</span>
+                <span class="n">prediction_pairs</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span>
+                <span class="n">target_pairs</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span>
+                <span class="n">order</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">internal_p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                <span class="n">matching</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">keep_essential_parts</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="p">)</span>  <span class="c1"># type: ignore</span>
+            <span class="n">matching</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">matching</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">prediction</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span>
+
+            <span class="n">matched_pairs</span> <span class="o">=</span> <span class="n">matching</span><span class="p">[(</span><span class="n">matching</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">matching</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)]</span>
+            <span class="n">loss_matched</span> <span class="o">=</span> <span class="p">((</span><span class="n">prediction_pairs</span><span class="p">[</span><span class="n">matched_pairs</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]]</span> <span class="o">-</span> <span class="n">target_pairs</span><span class="p">[</span><span class="n">matched_pairs</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>  <span class="c1"># type: ignore</span>
+            <span class="n">prediction_pairs_unmatched</span> <span class="o">=</span> <span class="n">prediction_pairs</span><span class="p">[</span><span class="n">matching</span><span class="p">[</span><span class="n">matching</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]]</span>
+            <span class="n">target_pairs_unmatched</span> <span class="o">=</span> <span class="n">target_pairs</span><span class="p">[</span><span class="n">matching</span><span class="p">[</span><span class="n">matching</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">]]</span>
+            <span class="n">loss_unmatched</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="p">(</span>
+                <span class="p">((</span><span class="n">prediction_pairs_unmatched</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">prediction_pairs_unmatched</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="o">+</span> <span class="p">((</span><span class="n">target_pairs_unmatched</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">target_pairs_unmatched</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+            <span class="p">)</span>  <span class="c1"># type: ignore</span>
+
+            <span class="n">losses_by_dim</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_matched</span> <span class="o">+</span> <span class="n">loss_unmatched</span>
+
+        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">losses_by_dim</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Janek Falkenstein.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

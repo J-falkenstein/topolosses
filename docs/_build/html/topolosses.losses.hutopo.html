@@ -1,0 +1,201 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HutopoLoss &mdash; topolosses  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="MosinLoss" href="topolosses.losses.mosin.html" />
+    <link rel="prev" title="DiceLoss" href="topolosses.losses.dice.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            topolosses
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Losses:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.betti_matching.html">BettiMatchingLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.cldice.html">CLDiceLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.dice.html">DiceLoss</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">HutopoLoss</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#topolosses.losses.hutopo.HutopoLoss"><code class="docutils literal notranslate"><span class="pre">HutopoLoss</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#topolosses.losses.hutopo.HutopoLoss.compute_hutopo_loss"><code class="docutils literal notranslate"><span class="pre">HutopoLoss.compute_hutopo_loss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#topolosses.losses.hutopo.HutopoLoss.forward"><code class="docutils literal notranslate"><span class="pre">HutopoLoss.forward()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.mosin.html">MosinLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.topograph.html">TopographLoss</a></li>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.warping.html">WarpingLoss</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">utils:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="topolosses.losses.utils.html">Utils</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">topolosses</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">HutopoLoss</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/topolosses.losses.hutopo.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-topolosses.losses.hutopo">
+<span id="hutopoloss"></span><h1>HutopoLoss<a class="headerlink" href="#module-topolosses.losses.hutopo" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="topolosses.losses.hutopo.HutopoLoss">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">topolosses.losses.hutopo.</span></span><span class="sig-name descname"><span class="pre">HutopoLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/topolosses/losses/hutopo/src/hutopo_loss.html#HutopoLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#topolosses.losses.hutopo.HutopoLoss" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">_Loss</span></code></p>
+<p>Topology-preserving segmentation loss combining pixel-wise and topological objectives.</p>
+<dl class="simple">
+<dt>This loss has been defined in:</dt><dd><p>Hu et al. (2019) “Topology-Preserving Deep Image Segmentation” (NeurIPS),</p>
+</dd>
+</dl>
+<p>This loss penalizes discrepancies between persistence diagrams of predicted and ground-truth segmentations using a Wasserstein distance on birth–death pairs.
+This loss can be used standalone or combined with a base segmentation loss via a weighting factor α.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filtration_type</strong> (<em>FiltrationType</em><em> or </em><em>string</em>) – <dl class="simple">
+<dt>Choose how to build the topological filtration on probability maps:</dt><dd><ul>
+<li><p><cite>sublevel</cite>:    sublevel-set on raw output.</p></li>
+<li><p><cite>superlevel</cite>:  sublevel-set on inverted output (1–p).</p></li>
+<li><p><cite>bothlevels</cite>:  both SUBLEVEL and SUPERLEVEL via concatenation.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Defaults to SUPERLEVEL.</p>
+</p></li>
+<li><p><strong>num_processes</strong> (<em>int</em>) – Number of parallel processes for persistent homology computations. Higher values may improve throughput. Defaults to 1.</p></li>
+<li><p><strong>include_background</strong> (<em>bool</em>) – Whether to include the background channel when computing topological loss. If False, only foreground classes are used. Defaults to False.</p></li>
+<li><p><strong>alpha</strong> (<em>float</em>) – Weight between the base segmentation loss and the topological loss. Total loss = base_loss + alpha * topo_loss. Defaults to 0.5.</p></li>
+<li><p><strong>softmax</strong> (<em>bool</em>) – If True, applies softmax to network outputs before loss computation. Mutually exclusive with sigmoid. Defaults to False.</p></li>
+<li><p><strong>sigmoid</strong> (<em>bool</em>) – If True, applies sigmoid activation to network outputs before loss computation. Mutually exclusive with softmax. Defaults to False.</p></li>
+<li><p><strong>use_base_loss</strong> (<em>bool</em>) – Whether to include a pixel-wise base loss component. If False, only the topological term is used and alpha is ignored. Defaults to True.</p></li>
+<li><p><strong>base_loss</strong> (<em>Optional</em><em>[</em><em>_Loss</em><em>]</em>) – Custom base loss function (e.g., DiceLoss, CrossEntropy). If None and use_base_loss=True, a default Dice loss is used. Defaults to None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If both sigmoid and softmax are set to True simultaneously.</p></li>
+<li><p><strong>ValueError</strong> – If <cite>filtration_type</cite> is provided as a string but does not match any of the valid options (‘SUPERLEVEL’, ‘SUBLEVEL’, ‘BOTHLEVELS’).</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="topolosses.losses.hutopo.HutopoLoss.compute_hutopo_loss">
+<span class="sig-name descname"><span class="pre">compute_hutopo_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prediction</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.Tensor</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/topolosses/losses/hutopo/src/hutopo_loss.html#HutopoLoss.compute_hutopo_loss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#topolosses.losses.hutopo.HutopoLoss.compute_hutopo_loss" title="Link to this definition"></a></dt>
+<dd><p>Compute the hutopo loss as the topological discrepancy by matching prediction and target persistence
+diagrams via a squared-L2 Wasserstein distance on birth–death pairs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="topolosses.losses.hutopo.HutopoLoss.forward">
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="reference internal" href="_modules/topolosses/losses/hutopo/src/hutopo_loss.html#HutopoLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#topolosses.losses.hutopo.HutopoLoss.forward" title="Link to this definition"></a></dt>
+<dd><p>Calculates the forward pass of the HutopoLoss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> (<em>Tensor</em>) – Input tensor of shape (batch_size, num_classes, H, W).</p></li>
+<li><p><strong>target</strong> (<em>Tensor</em>) – Target tensor of shape (batch_size, num_classes, H, W).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The calculated betti matching loss.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If the shape of the ground truth is different from the input shape.</p></li>
+<li><p><strong>ValueError</strong> – If softmax=True and the number of channels for the prediction is 1.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="topolosses.losses.dice.html" class="btn btn-neutral float-left" title="DiceLoss" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="topolosses.losses.mosin.html" class="btn btn-neutral float-right" title="MosinLoss" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Janek Falkenstein.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
