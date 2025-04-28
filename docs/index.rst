@@ -21,8 +21,8 @@ Install Topolosses from `PyPI <https://pypi.org/project/topolosses/>`_:
 
    pip install topolosses
 
-Alternative you can clone source-code from `github <https://github.com/J-falkenstein/topolosses>`_. 
-**Note**: this requires manual building of the C++ extensions (see :ref:`working-with-source-code`):
+Alternative you can clone source-code from `GitHub <https://github.com/J-falkenstein/topolosses>`_. 
+\n **Note**: this requires manual building of the C++ extensions (see :ref:`working-with-source-code`):
 
 Once installed, import and use any of the topology-aware losses just like a standard PyTorch loss:
 
