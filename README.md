@@ -5,6 +5,8 @@ currently it is the only readme and used also for pypi -->
 
 Topolosses is a Python package providing topology-aware losses for segmentation tasks. It includes losses that improve topological properties in segmentation models, such as `DiceLoss`, `TopographLoss`, `BettiMatchingLoss`, `HutopoLoss`, `MosinLoss` and `WarpingLoss`.
 
+The documentation is available here: https://j-falkenstein.github.io/topolosses/index.html#
+
 ## Installation
 
 Install the package from Test PyPI. 
