@@ -39,6 +39,10 @@ autodoc_mock_imports = [
     "Topograph",
     "cv2",
     "gudhi",
+    "torchvision",
+    "scipy",
+    "numpy",
+    "torch",
 ]
 
 templates_path = ["_templates"]
