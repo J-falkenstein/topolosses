@@ -15,13 +15,8 @@ You can install topolosses directly from PyPI:
 pip install topolosses
 ```
 
-Pre-built wheels are available for Linux platforms. If no compatible wheel exists, pip will compile from source locally.
-This requires a C++ compiler, Python development headers, OpenCV, Boost, and Eigen libraries. 
-(TODO: specify which versions are needed and where to locate the libraries). 
-
-Alternative you can clone source-code from `GitHub <https://github.com/J-falkenstein/topolosses>`_. 
-If pip can't find a compatible wheel, building manually from source is often more reliable than letting pip attempt the compilation. 
-This approach allows to tweak pyproject.toml and CMakeLists.txt to point at your local library paths. See working-with-source-code section for more details. 
+Pre-built wheels are available for Linux platforms.
+If no compatible wheel exists, pip will compile from source locally. See working-with-source-code section for more details. 
 
 ## Usage
 
@@ -79,14 +74,16 @@ Since most topology-aware loss functions combine the sparse topological componen
 
 
 ## Working with Source Code
-If no binary for your plattform is available or if you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions locally.
-These extensions are only included in the PyPI wheels, not in the source code, so building them is required when working from source.
-Make sure you have: A C++ compiler (e.g. GCC, Clang or MSVC), Python development headers, OpenCV, Boost, and Eigen installed.
+If no binary for your plattform is available or if you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions locally. 
 
-- Option 1: After cloning the repo you can tweak pyproject.toml and CMakeLists.txt to point at your local library paths. 
-Then you can use python -m build to build the wheels and pip install {path}.whl.  
-- Option 2: When not wanting to build but working directly inside the package it requires manual building of the C++ extensions. Might require adjusting the import statements. 
-(TODO explain how to install c++ extensions)
+If no compatible wheel exists, pip will compile from source locally. 
+To compile the C++ extension you require a C++ compiler, Python development headers, OpenCV, Boost, and Eigen libraries. (TODO: specify which versions are needed and where to locate the libraries).
+However, because this approach is very error prone it is better to clone source-code from `GitHub <https://github.com/J-falkenstein/topolosses>`_. 
+You can tweak pyproject.toml and CMakeLists.txt to point at your local library paths.
+
+- Option 1: After cloning the repo you can tweak pyproject.toml and CMakeLists.txt to point at your local library paths. Then you can use python -m build to build the wheels and pip install {path}.whl.
+- Option 2: When not wanting to build but working directly inside the package it requires manual building of the C++ extensions. Might require adjusting the import statements. (TODO explain how to install c++ extensions)
+
 
 
 ## Folder Structure
