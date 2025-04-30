@@ -9,12 +9,19 @@ The documentation is available here: https://j-falkenstein.github.io/topolosses/
 
 ## Installation
 
-Install the package from Test PyPI. 
-
+You can install topolosses directly from PyPI:
 
 ```bash
 pip install topolosses
 ```
+
+Pre-built wheels are available for Linux platforms. If no compatible wheel exists, pip will compile from source locally.
+This requires a C++ compiler, Python development headers, OpenCV, Boost, and Eigen libraries. 
+(TODO: specify which versions are needed and where to locate the libraries). 
+
+Alternative you can clone source-code from `GitHub <https://github.com/J-falkenstein/topolosses>`_. 
+If pip can't find a compatible wheel, building manually from source is often more reliable than letting pip attempt the compilation. 
+This approach allows to tweak pyproject.toml and CMakeLists.txt to point at your local library paths. See working-with-source-code section for more details. 
 
 ## Usage
 
@@ -51,9 +58,6 @@ result = loss.forward(prediction, target)
 ## Common Arguments for Loss Functions
 Since most topology-aware loss functions combine the sparse topological component with a dense region loss like Dice to ensure both shape accuracy and topological correctness, this project follows the same approach. By default, it uses Dice as the base loss, but you can easily replace it with any custom loss you prefer—or even use just the topology component if that’s all you need.
 
-- **`include_background`** (bool):  
-  Includes the background in the topology-aware component computation. Default: `False`.
-
 - **`alpha`** (float):  
   Weight for combining the topology-aware component and the base loss component. Default: `0.5`.
 
@@ -71,14 +75,18 @@ Since most topology-aware loss functions combine the sparse topological componen
 - **`base_loss`** (_Loss, optional):  
   The base loss function used with the topology-aware component. Default: `None`.
 
-> **Note**: Each loss function also has specific arguments. These are documented within the code using docstrings, and can be easily accessed using Python's `help()` function or by exploring the source code.
+> **Note**: Each loss function also has specific arguments. These are documented within the code using docstrings, and can be easily accessed using Python's `help()` function or by exploring the source code. The API reference is available here: https://j-falkenstein.github.io/topolosses/
 
 
 ## Working with Source Code
-If you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions manually.
+If no binary for your plattform is available or if you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions locally.
 These extensions are only included in the PyPI wheels, not in the source code, so building them is required when working from source.
+Make sure you have: A C++ compiler (e.g. GCC, Clang or MSVC), Python development headers, OpenCV, Boost, and Eigen installed.
 
-TODO explain how to install c++ extensions 
+- Option 1: After cloning the repo you can tweak pyproject.toml and CMakeLists.txt to point at your local library paths. 
+Then you can use python -m build to build the wheels and pip install {path}.whl.  
+- Option 2: When not wanting to build but working directly inside the package it requires manual building of the C++ extensions. Might require adjusting the import statements. 
+(TODO explain how to install c++ extensions)
 
 
 ## Folder Structure

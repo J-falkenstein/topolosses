@@ -91,8 +91,12 @@ Install Topolosses from <a class="reference external" href="https://pypi.org/pro
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>topolosses
 </pre></div>
 </div>
+<p>Pre-built wheels are available for Linux platforms. If no compatible wheel exists, pip will compile from source locally.
+This requires a C++ compiler, Python development headers, OpenCV, Boost, and Eigen libraries.
+(TODO: specify which versions are needed and where to locate the libraries).</p>
 <p>Alternative you can clone source-code from <a class="reference external" href="https://github.com/J-falkenstein/topolosses">GitHub</a>.
-n <strong>Note</strong>: this requires manual building of the C++ extensions (see <a class="reference internal" href="#working-with-source-code"><span class="std std-ref">Working with Source Code</span></a>):</p>
+If pip can’t find a compatible wheel, building manually from source is often more reliable than letting pip attempt the compilation.
+This approach allows to tweak pyproject.toml and CMakeLists.txt to point at your local library paths. See <a class="reference internal" href="#working-with-source-code"><span class="std std-ref">Working with Source Code</span></a> for more details.</p>
 <p>Once installed, import and use any of the topology-aware losses just like a standard PyTorch loss:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">topolosses.losses</span><span class="w"> </span><span class="kn">import</span> <span class="n">DiceLoss</span><span class="p">,</span> <span class="n">BettiMatchingLoss</span>
 
@@ -147,13 +151,13 @@ The base loss function used with the topology-aware component. Default: <code cl
 </section>
 <section id="working-with-source-code">
 <span id="id1"></span><h2>Working with Source Code<a class="headerlink" href="#working-with-source-code" title="Link to this heading"></a></h2>
-<p>If you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions manually.
-These extensions are only included in the PyPI wheels, not in the source code, so building them is required when working from source.</p>
+<p>If no binary for your plattform is available or if you want to modify the code (e.g., adjust a loss function), you’ll need to build the C++ extensions locally.
+These extensions are only included in the PyPI wheels, not in the source code, so building them is required when working from source.
+Make sure you have: A C++ compiler (e.g. GCC, Clang or MSVC), Python development headers, OpenCV, Boost, and Eigen installed.</p>
 <ul class="simple">
-<li><p>build c++ extension explictly and include in your project</p></li>
-<li><p>build whole project yourself locally (python -m build) and then pip install {path}.whl</p></li>
+<li><p>Option 1: After cloning the repo you can tweak pyproject.toml and CMakeLists.txt to point at your local library paths. Then you can use python -m build to build the wheels and pip install {path}.whl.</p></li>
+<li><p>Option 2: When not wanting to build but working directly inside the package it requires manual building of the C++ extensions. Might require adjusting the import statements. (TODO explain how to install c++ extensions)</p></li>
 </ul>
-<p>TODO explain how to install c++ extensions</p>
 </section>
 <section id="links">
 <h2>Links<a class="headerlink" href="#links" title="Link to this heading"></a></h2>
