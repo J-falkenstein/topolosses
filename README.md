@@ -47,14 +47,14 @@ loss = BettiMatchingLoss(
     base_loss=clDiceLoss
 )
 
-result = loss.forward(prediction, target)
+result = loss(prediction, target)
 ```
 
 ## Common Arguments for Loss Functions
 Since most topology-aware loss functions combine the sparse topological component with a dense region loss like Dice to ensure both shape accuracy and topological correctness, this project follows the same approach. By default, it uses Dice as the base loss, but you can easily replace it with any custom loss you prefer—or even use just the topology component if that’s all you need.
 
 - **`alpha`** (float):  
-  Weight for combining the topology-aware component and the base loss component. Default: `0.5`.
+  Weight for combining the topology-aware component and the base loss component. Default differs between loses. 
 
 - **`sigmoid`** (bool):  
   Applies sigmoid activation to the forward pass input before computing the topology-aware component. 

@@ -83,7 +83,7 @@ TEST_CASES_OLDNEW = [
 class TestDiceTopographLoss(unittest.TestCase):
     @parameterized.expand(TEST_CASES)
     def test_result(self, input_param, input_data, expected_val):
-        result = MosinLoss(**input_param).forward(**input_data)
+        result = MosinLoss(**input_param)(**input_data)
         np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val, rtol=1e-5)
 
     @parameterized.expand(TEST_CASES_OLDNEW)

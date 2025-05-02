@@ -122,17 +122,8 @@ TEST_CASES = [
 class TestDiceCLDiceLoss(unittest.TestCase):
     @parameterized.expand(TEST_CASES)
     def test_result(self, input_param, input_data, expected_val):
-        result = CLDiceLoss(**input_param).forward(**input_data)
+        result = CLDiceLoss(**input_param)(**input_data)
         np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val, rtol=1e-5)
-
-    # @parameterized.expand(TEST_CASES)
-    # def test_result_CLDice(self, input_param, input_data, expected_val):
-    #     result = CLDiceLoss(**input_param).forward(**input_data)
-    #     print(result.item())
-    #     expected_val, dic = Multiclass_CLDice(**input_param).forward(**input_data)
-    #     print(dic)
-    #     print(expected_val[0].item())
-    #     np.testing.assert_allclose(result.detach().cpu().numpy(), expected_val[0].item(), rtol=1e-5)
 
     def test_with_cuda(self):
         if torch.cuda.is_available():
